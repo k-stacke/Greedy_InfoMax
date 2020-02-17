@@ -16,6 +16,8 @@ class Supervised_Loss(nn.Module):
         # create linear classifier
         if opt.dataset == "stl10":
             n_classes = 10
+        elif opt.dataset == "cam17":
+            n_classes = 2
         else:
             raise Exception("Other datasets are not implemented yet")
 

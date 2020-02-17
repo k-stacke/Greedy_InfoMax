@@ -40,6 +40,8 @@ def load_classification_model(opt):
 
     if opt.dataset == "stl10":
         num_classes = 10
+    elif opt.dataset == "cam17":
+        num_classes = 2
     else:
         raise Exception("Invalid option")
 

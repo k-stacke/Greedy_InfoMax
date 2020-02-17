@@ -73,4 +73,18 @@ def parse_general_args(parser):
         "(be careful, this can overwrite previous results); "
         "otherwise saves logs according to time-stamp",
     )
+    parser.add_option(
+        "--training_data_csv",
+        type="string",
+        default=None,
+        help="File to specify training dataset from file",
+    )
+    parser.add_option(
+        "--test_data_csv",
+        type="string",
+        default=None,
+        help="File to specify test dataset from file, will only be used if training_data_csv is specified",
+    )
+
+
     return parser

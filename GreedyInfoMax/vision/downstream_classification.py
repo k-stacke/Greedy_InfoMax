@@ -10,7 +10,7 @@ from GreedyInfoMax.vision.models import load_vision_model
 from GreedyInfoMax.utils import logger, utils
 
 
-def train_logistic_regression(opt, context_model, predict_model, train_loader):
+def train_logistic_regression(opt, context_model, predict_model, train_loader, criterion, optimizer):
     total_step = len(train_loader)
     predict_model.train()
 
@@ -45,25 +45,27 @@ def train_logistic_regression(opt, context_model, predict_model, train_loader):
             optimizer.step()
 
             # calculate accuracy
-            acc1, acc5 = utils.accuracy(prediction.data, target, topk=(1, 5))
+            #acc1, acc5 = utils.accuracy(prediction.data, target, topk=(1, 5))
+            #epoch_acc1 += acc1
+            #epoch_acc5 += acc5
+            acc1 =  utils.accuracy(prediction.data, target, topk=(1,))[0]
             epoch_acc1 += acc1
-            epoch_acc5 += acc5
 
             sample_loss = loss.item()
             loss_epoch += sample_loss
 
             if step % 10 == 0:
                 print(
-                    "Epoch [{}/{}], Step [{}/{}], Time (s): {:.1f}, Acc1: {:.4f}, Acc5: {:.4f}, Loss: {:.4f}".format(
+                    "\rEpoch [{}/{}], Step [{}/{}], Time (s): {:.1f}, Acc1: {:.4f}, Acc5: {:.4f}, Loss: {:.4f}".format(
                         epoch + 1,
                         opt.num_epochs,
                         step,
                         total_step,
                         time.time() - starttime,
                         acc1,
-                        acc5,
+                        0,#acc5,
                         sample_loss,
-                    )
+                    ), end=""
                 )
                 starttime = time.time()
 
@@ -79,13 +81,13 @@ def train_logistic_regression(opt, context_model, predict_model, train_loader):
         logs.create_log(
             context_model,
             epoch=epoch,
-            predict_model=predict_model,
+            #predict_model=predict_model,
             accuracy=epoch_acc1 / total_step,
-            acc5=epoch_acc5 / total_step,
+            #acc5=epoch_acc5 / total_step,
         )
 
 
-def test_logistic_regression(opt, context_model, predict_model, test_loader):
+def test_logistic_regression(opt, context_model, predict_model, test_loader, criterion):
     total_step = len(test_loader)
     context_model.eval()
     predict_model.eval()
@@ -96,6 +98,8 @@ def test_logistic_regression(opt, context_model, predict_model, test_loader):
     epoch_acc1 = 0
     epoch_acc5 = 0
 
+    predictions = []
+    
     for step, (img, target) in enumerate(test_loader):
 
         model_input = img.to(opt.device)
@@ -110,19 +114,27 @@ def test_logistic_regression(opt, context_model, predict_model, test_loader):
         target = target.to(opt.device)
         loss = criterion(prediction, target)
 
+        predictions.append(prediction.detach().numpy())
+
         # calculate accuracy
-        acc1, acc5 = utils.accuracy(prediction.data, target, topk=(1, 5))
+        #acc1, acc5 = utils.accuracy(prediction.data, target, topk=(1, 5))
+        acc1 = utils.accuracy(prediction.data, target, topk=(1,))[0]
         epoch_acc1 += acc1
-        epoch_acc5 += acc5
+        #epoch_acc5 += acc5
 
         sample_loss = loss.item()
         loss_epoch += sample_loss
 
         if step % 10 == 0:
             print(
-                "Step [{}/{}], Time (s): {:.1f}, Acc1: {:.4f}, Acc5: {:.4f}, Loss: {:.4f}".format(
-                    step, total_step, time.time() - starttime, acc1, acc5, sample_loss
-                )
+                "\rStep [{}/{}], Time (s): {:.1f}, Acc1: {:.4f}, Acc5: {:.4f}, Loss: {:.4f}".format(
+                    step, 
+                    total_step, 
+                    time.time() - starttime, 
+                    acc1, 
+                    0,#acc5, 
+                    sample_loss
+                ), end=""
             )
             starttime = time.time()
 
@@ -170,11 +182,11 @@ if __name__ == "__main__":
 
     try:
         # Train the model
-        train_logistic_regression(opt, context_model, classification_model, train_loader)
+        train_logistic_regression(opt, context_model, classification_model, train_loader, criterion, optimizer)
 
         # Test the model
         acc1, acc5, _ = test_logistic_regression(
-            opt, context_model, classification_model, test_loader
+            opt, context_model, classification_model, test_loader, criterion
         )
 
     except KeyboardInterrupt:
@@ -184,7 +196,7 @@ if __name__ == "__main__":
         context_model,
         classification_model=classification_model,
         accuracy=acc1,
-        acc5=acc5,
+        #acc5=acc5,
         final_test=True,
     )
     torch.save(

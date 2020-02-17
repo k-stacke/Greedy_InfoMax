@@ -16,6 +16,7 @@ def validate(opt, model, test_loader):
     starttime = time.time()
 
     for step, (img, label) in enumerate(test_loader):
+        print("\r Step: {}".format(step), end="")
 
         model_input = img.to(opt.device)
         label = label.to(opt.device)
@@ -37,6 +38,7 @@ def validate(opt, model, test_loader):
 
 
 def train(opt, model):
+    #total_step = int(train_loader._size/opt.batch_size_multiGPU)
     total_step = len(train_loader)
     model.module.switch_calc_loss(True)
 
@@ -50,6 +52,7 @@ def train(opt, model):
         loss_epoch = [0 for i in range(opt.model_splits)]
         loss_updates = [1 for i in range(opt.model_splits)]
 
+        #for step, batch_data in enumerate(train_loader):
         for step, (img, label) in enumerate(train_loader):
 
             if step % print_idx == 0:
@@ -65,7 +68,9 @@ def train(opt, model):
                 )
 
             starttime = time.time()
-
+           
+            #img = batch_data[0]["images"]
+            #label = batch_data[0]["labels"]
             model_input = img.to(opt.device)
             label = label.to(opt.device)
 
