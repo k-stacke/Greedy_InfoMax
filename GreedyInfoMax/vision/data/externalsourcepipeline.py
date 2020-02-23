@@ -25,11 +25,14 @@ class ExternalSourcePipeline(Pipeline):
         self.input_label = ops.ExternalSource()
 
         # Define augmentations
-        self.norm = ops.CropMirrorNormalize(device="gpu", output_layout='CWH')
+        self.norm = ops.CropMirrorNormalize(device="gpu", output_layout='CWH',
+                                            mean=[125.31, 122.95, 113.87],
+                                            std=[63.0, 62.09, 66.70])
         self.coin = ops.CoinFlip(probability=0.5)
         self.coin2 = ops.CoinFlip(probability=0.5)
         self.flip = ops.Flip(device="gpu")
-        #self.hsv = ops.Hsv(device = "gpu", hue = 45.)
+        self.hsv = ops.Hsv(device = "gpu")
+        self.hue_random = ops.Uniform(range=[-40, 40]) #pretty large variations
 
         self.pos_rng_x = ops.Uniform(range = (0.0, 1.0))
         self.pos_rng_y = ops.Uniform(range = (0.0, 1.0))
@@ -49,6 +52,8 @@ class ExternalSourcePipeline(Pipeline):
         pos_y = self.pos_rng_y()
         images = self.decode(self.jpegs, crop_pos_x=pos_x, crop_pos_y=pos_y)
         images = self.flip(images, horizontal = self.coin(), vertical = self.coin2())
+        hue_random = self.hue_random()
+        images = self.hsv(images, hue=hue_random)
          
         output = self.norm(images)
         return (output, self.labels)

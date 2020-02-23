@@ -215,10 +215,10 @@ def get_camelyon_dataloader(opt):
             "flip": True,
             "hue": True,
             "grayscale": opt.grayscale,
-            "mean": [0.4313, 0.4156, 0.3663],  # values for train+unsupervised combined #TODO: find new mean
-            "std": [0.2683, 0.2610, 0.2687],
-            "bw_mean": [0.4120],  # values for train+unsupervised combined
-            "bw_std": [0.2570],
+            "mean": None, #[0.4313, 0.4156, 0.3663],  # values for train+unsupervised combined #TODO: find new mean
+            "std": None,#[0.2683, 0.2610, 0.2687],
+            "bw_mean": None,# [0.4120],  # values for train+unsupervised combined
+            "bw_std": None,#[0.2570],
         }  # values for labeled train set: mean [0.4469, 0.4400, 0.4069], std [0.2603, 0.2566, 0.2713]
     }
     transform_train = transforms.Compose(
@@ -250,7 +250,7 @@ def get_camelyon_dataloader(opt):
             raise Expetion(f"Cannot find file {file_}")
     
         df = clean_data(opt.data_input_dir, df)
-
+        
         slide_ids = df.slide_id.unique()
         random.shuffle(slide_ids)
         train_req_ids = []
@@ -305,6 +305,8 @@ def get_camelyon_dataloader(opt):
     #unsupervised_loader = train_loader
     #unsupervised_dataset = train_dataset
 
+    #train_pipe.build()
+    #test_pipe.build()    
 
     train_dataset = ImagePatchesDataset(train_df, image_dir=base_folder, transform=transform_train)
     test_dataset = ImagePatchesDataset(val_df, image_dir=base_folder, transform=transform_valid)
@@ -318,22 +320,14 @@ def get_camelyon_dataloader(opt):
         train_dataset, batch_size=opt.batch_size_multiGPU, sampler=train_sampler, num_workers=16
     )
 
+    unsupervised_loader = train_loader
     unsupervised_dataset = train_dataset
-    unsupervised_loader = torch.utils.data.DataLoader(
-        unsupervised_dataset,
-        batch_size=opt.batch_size_multiGPU,
-        shuffle=True,
-        num_workers=16,
-    )
 
-    test_loader = torch.utils.data.DataLoader(
-        test_dataset, batch_size=opt.batch_size_multiGPU, shuffle=False, num_workers=16
-    )
 
-    # create train/val split
-    if opt.validate:
-        print("Use train / val split")
+    #train_dataset = ImagePatchesDataset(train_df, image_dir=base_folder, transform=transform_train)
+    #test_dataset = ImagePatchesDataset(val_df, image_dir=base_folder, transform=transform_valid)
 
+    if opt.validate():
         df = train_df
 
         slide_ids = df.slide_id.unique()
@@ -468,7 +462,6 @@ class ImagePatchesDataset(Dataset):
             #    
         else:
             image = transforms.ToTensor()(image)
-
 
         # label = row.label_int
         label = self.label_enum[row.label_new]

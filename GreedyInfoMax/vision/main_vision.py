@@ -49,8 +49,8 @@ def validate(opt, model, test_loader):
 
 
 def train(opt, model):
-    #total_step = int(train_loader._size/opt.batch_size_multiGPU)
-    total_step = len(train_loader)
+    total_step = int(train_loader._size/opt.batch_size_multiGPU)
+    #total_step = len(train_loader)
     model.module.switch_calc_loss(True)
 
     print_idx = 100
@@ -63,6 +63,17 @@ def train(opt, model):
         loss_epoch = [0 for i in range(opt.model_splits)]
         loss_updates = [1 for i in range(opt.model_splits)]
 
+        domain_loss_reg = 0.1
+        #if epoch >= 1:
+        #    domain_loss_reg = 0.1
+        #if epoch >= 5:
+        #    domain_loss_reg = 0.02
+        #if epoch >= 5:
+        #    domain_loss_reg = 0.04
+
+
+        for step, batch_data in enumerate(train_loader):
+        #for step, (img, label) in enumerate(train_loader):
 
         for step, batch_data in enumerate(train_loader):
             if step % print_idx == 0:
@@ -88,27 +99,37 @@ def train(opt, model):
             label = label.to(opt.device)#.float()
             #label = label.squeeze().long()
 
+            #if step > 300:
+            #     domain_loss_reg = 0.1
 
-            loss, _, _, accuracy = model(model_input, label, n=cur_train_module)
+            loss, _, _, accuracy, domain_loss = model(model_input, label, n=cur_train_module, domain_reg=domain_loss_reg)
             loss = torch.mean(loss, 0) # take mean over outputs of different GPUs
+            domain_loss = torch.mean(domain_loss, 0) # take mean over outputs of different GPUs
             accuracy = torch.mean(accuracy, 0)
 
             if cur_train_module != opt.model_splits and opt.model_splits > 1:
-                loss = loss[cur_train_module].unsqueeze(0)
+                loss = loss[cur_train_module].unsqueeze(0) 
+                domain_loss = domain_loss[cur_train_module].unsqueeze(0)
+
 
 
             # loop through the losses of the modules and do gradient descent
-            for idx, cur_losses in enumerate(loss):
+            for idx, (cur_losses, domain_losses) in enumerate(zip(loss, domain_loss)):
                 if len(loss) == 1 and opt.model_splits != 1:
                     idx = cur_train_module
-
                 model.zero_grad()
 
                 if idx == len(loss) - 1:
+                    domain_losses.backward()
                     cur_losses.backward()
                 else:
+                    domain_losses.backward(retain_graph=True)
                     cur_losses.backward(retain_graph=True)
+
                 optimizer[idx].step()
+                
+                if len(domain_opt) > 0:
+                   domain_opt[idx].step()
 
                 print_loss = cur_losses.item()
                 print_acc = accuracy[idx].item()
@@ -124,12 +145,15 @@ def train(opt, model):
         # DALI reset loader 
         # train_loader.reset()
 
+        # DALI reset loader 
+        train_loader.reset()
+
         if opt.validate:
             validation_loss = validate(opt, model, test_loader) #test_loader corresponds to validation set here
             logs.append_val_loss(validation_loss)
 
         logs.append_train_loss([x / loss_updates[idx] for idx, x in enumerate(loss_epoch)])
-        logs.create_log(model, epoch=epoch, optimizer=optimizer)
+        logs.create_log(model, epoch=epoch, optimizer=optimizer, domain_optimizer=domain_opt)
 
 
 if __name__ == "__main__":
@@ -147,7 +171,7 @@ if __name__ == "__main__":
         torch.backends.cudnn.benchmark = True
 
     # load model
-    model, optimizer = load_vision_model.load_model_and_optimizer(opt)
+    model, optimizer, domain_opt = load_vision_model.load_model_and_optimizer(opt)
 
     logs = logger.Logger(opt)
 
