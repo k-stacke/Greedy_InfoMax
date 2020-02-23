@@ -54,6 +54,25 @@ def parse_general_args(parser):
         "1 - supervised loss using class labels",
     )
     parser.add_option(
+        "--domain_loss",
+        action="store_true",
+        default=False,
+        help="Boolean to decide whether to train domain agnostic model. Requires label to denote domain",
+    )
+    parser.add_option(
+        "--domain_loss_reg",
+        type="float",
+        default=0.1,
+        help="How mcuh is domain loss to effect results",
+    )
+    parser.add_option(
+        "--learning_rate_domain_loss",
+        type="float",
+        default=0.01,
+        help="Learning rate domain loss",
+    )
+
+    parser.add_option(
         "--grayscale",
         action="store_true",
         default=False,

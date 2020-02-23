@@ -11,6 +11,7 @@ def load_model_and_optimizer(opt, num_GPU=None, reload_model=False, calc_loss=Tr
     )
 
     optimizer = []
+    domain_optimizer = []
     if opt.model_splits == 1:
         optimizer.append(
             torch.optim.Adam(model.parameters(), lr=opt.learning_rate)
@@ -19,16 +20,20 @@ def load_model_and_optimizer(opt, num_GPU=None, reload_model=False, calc_loss=Tr
         # use separate optimizer for each module, so gradients don't get mixed up
         for idx, layer in enumerate(model.encoder):
             optimizer.append(torch.optim.Adam(layer.parameters(), lr=opt.learning_rate))
-    else:
-        raise NotImplementedError
+    if opt.domain_loss:
+        print('adding domain optimizer', len(model.domain_model))
+        for idx, layer in enumerate(model.domain_model):
+            domain_optimizer.append(torch.optim.Adam(layer.parameters(), lr=opt.learning_rate_domain_loss))
+    #else:
+    #    raise NotImplementedError
 
     model, num_GPU = model_utils.distribute_over_GPUs(opt, model, num_GPU=num_GPU)
 
-    model, optimizer = model_utils.reload_weights(
-        opt, model, optimizer, reload_model=reload_model
+    model, optimizer, domain_optimizer = model_utils.reload_weights(
+        opt, model, optimizer, domain_optimizer, reload_model=reload_model
     )
 
-    return model, optimizer
+    return model, optimizer, domain_optimizer
 
 
 def load_classification_model(opt):

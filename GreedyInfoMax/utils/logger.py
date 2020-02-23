@@ -38,7 +38,7 @@ class Logger:
             else:
                 self.val_loss = None
 
-        self.num_models_to_keep = 1
+        self.num_models_to_keep = 10
         assert self.num_models_to_keep > 0, "Dont delete all models!!!"
 
     def create_log(
@@ -50,10 +50,12 @@ class Logger:
         final_test=False,
         final_loss=None,
         acc5=None,
-        classification_model=None
+        classification_model=None,
+        domain_optimizer=None
     ):
 
         print("Saving model and log-file to " + self.opt.log_path)
+        epoch = epoch + 1
 
         # Save the model checkpoint
         if self.opt.experiment == "vision":
@@ -61,6 +63,12 @@ class Logger:
                 torch.save(
                     layer.state_dict(),
                     os.path.join(self.opt.log_path, "model_{}_{}.ckpt".format(idx, epoch)),
+                )
+        if model.module.domain_model:
+            for idx, layer in enumerate(model.module.domain_model):
+                torch.save(
+                    layer.state_dict(),
+                    os.path.join(self.opt.log_path, "domain_model_{}_{}.ckpt".format(idx, epoch)),
                 )
         else:
             torch.save(
@@ -128,6 +136,14 @@ class Logger:
                     )
                 except:
                     print("not enough models there yet, nothing to delete")
+        if domain_optimizer is not None:
+            for idx, optims in enumerate(domain_optimizer):
+                torch.save(
+                    optims.state_dict(),
+                    os.path.join(
+                        self.opt.log_path, "domain_optim_{}_{}.ckpt".format(idx, epoch)
+                    ),
+                )
 
         # Save hyper-parameters
         with open(os.path.join(self.opt.log_path, "log.txt"), "w+") as cur_file:

@@ -20,7 +20,8 @@ class ExternalInputIterator(object):
        self.data_frame = data_frame
 
 
-       self.files = [{'label': row.label_int, 'filename': row.filename} for _, row in data_frame.iterrows()]
+       #self.files = [{'label': row.label_int, 'filename': row.filename} for _, row in data_frame.iterrows()]
+       self.files = [{'label': row.center, 'filename': row.filename} for _, row in data_frame.iterrows()]
        shuffle(self.files)
 
 

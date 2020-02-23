@@ -51,7 +51,7 @@ def makeDeltaOrthogonal(weights, gain):
         weights.mul_(gain)
 
 
-def reload_weights(opt, model, optimizer, reload_model):
+def reload_weights(opt, model, optimizer, domain_optimizer, reload_model):
     ## reload weights for training of the linear classifier
     if (opt.model_type == 0) and reload_model:  # or opt.model_type == 2)
         print("Loading weights from ", opt.model_path)
@@ -101,6 +101,18 @@ def reload_weights(opt, model, optimizer, reload_model):
                     )
                 )
 
+            for idx, layer in enumerate(model.module.domain_model):
+                model.module.domain_model[idx].load_state_dict(
+                    torch.load(
+                        os.path.join(
+                            opt.model_path,
+                            "domain_model_{}_{}.ckpt".format(idx, opt.start_epoch),
+                        ),
+                        map_location=opt.device.type,
+                    )
+                )
+
+
         for i, optim in enumerate(optimizer):
             if opt.model_splits > 3 and i > 2:
                 break
@@ -113,7 +125,19 @@ def reload_weights(opt, model, optimizer, reload_model):
                     map_location=opt.device.type,
                 )
             )
+        for i, optim in enumerate(domain_optimizer):
+            if opt.model_splits > 3 and i > 2:
+                break
+            optim.load_state_dict(
+                torch.load(
+                    os.path.join(
+                        opt.model_path,
+                        "domain_optim_{}_{}.ckpt".format(str(i), opt.start_epoch),
+                    ),
+                    map_location=opt.device.type,
+                )
+            )
     else:
         print("Randomly initialized model")
 
-    return model, optimizer
+    return model, optimizer, domain_optimizer
