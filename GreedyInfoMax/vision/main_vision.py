@@ -11,17 +11,25 @@ from GreedyInfoMax.vision.data import get_dataloader
 
 def validate(opt, model, test_loader):
     total_step = len(test_loader)
+    #total_step = int(test_loader._size/opt.batch_size_multiGPU)
 
     loss_epoch = [0 for i in range(opt.model_splits)]
     starttime = time.time()
 
-    for step, (img, label) in enumerate(test_loader):
-        print("\r Step: {}".format(step), end="")
+    for step, batch_data in enumerate(test_loader):
+        print("\r Validation Step: {}/{}".format(step, total_step), end="")
+
+        img = batch_data[0]
+        label = batch_data[1]
+        
+        # RESHAPE INPUT ARRAY
+        # img = img.reshape(img.shape[0] * img.shape[1], img.shape[2], img.shape[3], img.shape[4])
 
         model_input = img.to(opt.device)
         label = label.to(opt.device)
+        #label = label.squeeze().long()
 
-        loss, _, _, _ = model(model_input, label, n=opt.train_module)
+        loss, _, _, _, _ = model(model_input, label, n=opt.train_module)
         loss = torch.mean(loss, 0)
 
         loss_epoch += loss.data.cpu().numpy()
@@ -34,6 +42,9 @@ def validate(opt, model, test_loader):
         )
 
     validation_loss = [x/total_step for x in loss_epoch]
+    
+    #DALI
+    #test_loader.reset()
     return validation_loss
 
 
@@ -52,9 +63,8 @@ def train(opt, model):
         loss_epoch = [0 for i in range(opt.model_splits)]
         loss_updates = [1 for i in range(opt.model_splits)]
 
-        #for step, batch_data in enumerate(train_loader):
-        for step, (img, label) in enumerate(train_loader):
 
+        for step, batch_data in enumerate(train_loader):
             if step % print_idx == 0:
                 print(
                     "Epoch [{}/{}], Step [{}/{}], Training Block: {}, Time (s): {:.1f}".format(
@@ -68,11 +78,16 @@ def train(opt, model):
                 )
 
             starttime = time.time()
-           
-            #img = batch_data[0]["images"]
-            #label = batch_data[0]["labels"]
+
+            img = batch_data[0]
+            label = batch_data[1] 
+            # RESHAPE INPUT ARRAY
+            # img = img.reshape(img.shape[0] * img.shape[1], img.shape[2], img.shape[3], img.shape[4])
+ 
             model_input = img.to(opt.device)
-            label = label.to(opt.device)
+            label = label.to(opt.device)#.float()
+            #label = label.squeeze().long()
+
 
             loss, _, _, accuracy = model(model_input, label, n=cur_train_module)
             loss = torch.mean(loss, 0) # take mean over outputs of different GPUs
@@ -80,6 +95,7 @@ def train(opt, model):
 
             if cur_train_module != opt.model_splits and opt.model_splits > 1:
                 loss = loss[cur_train_module].unsqueeze(0)
+
 
             # loop through the losses of the modules and do gradient descent
             for idx, cur_losses in enumerate(loss):
@@ -103,6 +119,10 @@ def train(opt, model):
 
                 loss_epoch[idx] += print_loss
                 loss_updates[idx] += 1
+ 
+
+        # DALI reset loader 
+        # train_loader.reset()
 
         if opt.validate:
             validation_loss = validate(opt, model, test_loader) #test_loader corresponds to validation set here

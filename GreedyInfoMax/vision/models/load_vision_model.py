@@ -46,7 +46,7 @@ def load_classification_model(opt):
         raise Exception("Invalid option")
 
     classification_model = ClassificationModel.ClassificationModel(
-        in_channels=in_channels, num_classes=num_classes,
+        in_channels=in_channels, num_classes=num_classes, #hidden_nodes=512
     ).to(opt.device)
 
     return classification_model

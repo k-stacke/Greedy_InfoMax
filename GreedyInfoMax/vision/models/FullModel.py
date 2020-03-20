@@ -14,7 +14,7 @@ class FullVisionModel(torch.nn.Module):
 
         if self.opt.model_splits == 1 and not self.opt.loss == 1:
             # building the CPC model including the autoregressive PixelCNN on top of the ResNet
-            self.employ_autoregressive = True
+            self.employ_autoregressive = True 
         else:
             self.employ_autoregressive = False
 
@@ -98,7 +98,7 @@ class FullVisionModel(torch.nn.Module):
         else:
             cur_device = self.opt.device
 
-        n_patches_x, n_patches_y = None, None
+        n_patches_x, n_patches_y = None, None # Patchify: 7,7
 
         loss = torch.zeros(1, self.opt.model_splits, device=cur_device) #first dimension for multi-GPU training
         accuracies = torch.zeros(1, self.opt.model_splits, device=cur_device) #first dimension for multi-GPU training
@@ -131,8 +131,8 @@ class FullVisionModel(torch.nn.Module):
         ## by default models are set to not calculate the loss as it is costly
         ## this function can enable the calculation of the loss for training
         self.calc_loss = calc_loss
-        if self.opt.model_splits == 1 and self.opt.loss == 0:
-            self.autoregressor.calc_loss = calc_loss
+        #if self.opt.model_splits == 1 and self.opt.loss == 0:
+        #    self.autoregressor.calc_loss = calc_loss
 
         if self.opt.model_splits == 1 and self.opt.loss == 1:
             self.encoder[-1].calc_loss = calc_loss

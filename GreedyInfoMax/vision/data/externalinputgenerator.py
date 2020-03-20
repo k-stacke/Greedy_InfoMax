@@ -3,7 +3,7 @@ import numpy as np
 import collections
 import pandas as pd
 
-from random import shuffle
+import random
 
 import nvidia.dali.ops as ops
 import nvidia.dali.types as types
@@ -14,14 +14,16 @@ class ExternalInputIterator(object):
     '''
     Used by DALI to read files from disk and handle batching
     '''
-    def __init__(self, batch_size, data_frame, image_dir):
+    def __init__(self, batch_size, data_frame, image_dir, shuffle=True):
        self.img_dir = image_dir
        self.batch_size = batch_size
        self.data_frame = data_frame
 
 
-       self.files = [{'label': row.label_int, 'filename': row.filename} for _, row in data_frame.iterrows()]
-       shuffle(self.files)
+       #self.files = [{'label': row.label_int, 'filename': row.filename} for _, row in data_frame.iterrows()]
+       self.files = [{'label': row.center, 'filename': row.filename} for _, row in data_frame.iterrows()]
+       if shuffle:
+           random.shuffle(self.files)
 
 
     def __iter__(self):
