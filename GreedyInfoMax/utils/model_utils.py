@@ -101,16 +101,17 @@ def reload_weights(opt, model, optimizer, domain_optimizer, reload_model):
                     )
                 )
 
-            for idx, layer in enumerate(model.module.domain_model):
-                model.module.domain_model[idx].load_state_dict(
-                    torch.load(
-                        os.path.join(
-                            opt.model_path,
-                            "domain_model_{}_{}.ckpt".format(idx, opt.start_epoch),
-                        ),
-                        map_location=opt.device.type,
+            if opt.domain_loss:
+                for idx, layer in enumerate(model.module.domain_model):
+                    model.module.domain_model[idx].load_state_dict(
+                        torch.load(
+                            os.path.join(
+                                opt.model_path,
+                                "domain_model_{}_{}.ckpt".format(idx, opt.start_epoch),
+                            ),
+                            map_location=opt.device.type,
+                        )
                     )
-                )
 
 
         for i, optim in enumerate(optimizer):

@@ -39,9 +39,24 @@ class ExternalSourcePipeline(Pipeline):
         self.decode = ops.ImageDecoderCrop(device = 'mixed',  
                                            crop = (64, 64))
 
+        self.patchify = self.make_patches(patch_size=16, overlap=2)
         # resizing is *must* because loaded images maybe of different sizes
         # and to create GPU tensors we need image arrays to be of same size
         #self.res = ops.Resize(device="gpu", resize_x=64, resize_y=64, interp_type=types.INTERP_TRIANGULAR)
+
+    def make_patches(self, patch_size, overlap):
+        def patchify(x, patch_size=patch_size, overlap=overlap):
+            # Assumes input of shape [channel, width, height]
+            x = (
+                x.unfold(1, patch_size, patch_size // overlap) #create patches per row
+                .unfold(2, patch_size, patch_size // overlap) # create patches per column
+                .permute(1, 2, 0, 3, 4) # patchid_row, patchid_col, channel, patch_size, patch_size
+            )
+            x = x.reshape(
+                x.shape[0] * x.shape[1], x.shape[2], x.shape[3], x.shape[4]
+            ) # reshape to num_patches, channel, w, h
+            return x
+        return patchify
 
     def define_graph(self):
         self.jpegs = self.input()
@@ -52,6 +67,8 @@ class ExternalSourcePipeline(Pipeline):
         pos_y = self.pos_rng_y()
         images = self.decode(self.jpegs, crop_pos_x=pos_x, crop_pos_y=pos_y)
         images = self.flip(images, horizontal = self.coin(), vertical = self.coin2())
+        # Apply color augmentation per patch, so it varies slightly over the image
+        patches = self.patchify(images)
         hue_random = self.hue_random()
         images = self.hsv(images, hue=hue_random)
          
