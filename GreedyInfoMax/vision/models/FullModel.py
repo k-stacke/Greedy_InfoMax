@@ -140,7 +140,9 @@ class FullVisionModel(torch.nn.Module):
         n_patches_x, n_patches_y = None, None # Patchify: 7,7
 
         loss = torch.zeros(1, self.opt.model_splits, device=cur_device) #first dimension for multi-GPU training
-        domain_loss = torch.zeros(1, self.opt.model_splits, device=cur_device) #first dimension for multi-GPU training
+        domain_loss = None
+        if self.domain_model:
+            domain_loss = torch.zeros(1, self.opt.model_splits, device=cur_device) #first dimension for multi-GPU training
         accuracies = torch.zeros(1, self.opt.model_splits, device=cur_device) #first dimension for multi-GPU training
 
 
@@ -182,7 +184,8 @@ class FullVisionModel(torch.nn.Module):
             if cur_loss is not None:
                 loss[:, idx] = cur_loss
                 accuracies[:, idx] = cur_accuracy
-                domain_loss[:, idx] = d_loss
+                if self.domain_model:
+                    domain_loss[:, idx] = d_loss
 
         if self.employ_autoregressive and self.calc_loss:
             c, loss[:, -1] = self.autoregressor(h)

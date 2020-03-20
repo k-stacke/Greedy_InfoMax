@@ -242,12 +242,11 @@ def get_camelyon_dataloader(opt):
             raise Exception(f'Cannot find file: {opt.test_data_csv}')
     else:
         file_ = f"{opt.data_input_dir}/camelyon17_patches_unbiased.csv"
-        #file_ = f"{opt.data_input_dir}/lnco_camelyon_patches.csv"
         if os.path.isfile(file_):
             print(f"reading {file_} file")
             df = pd.read_csv(file_)
         else:
-            raise Expetion(f"Cannot find file {file_}")
+            raise Exception(f"Cannot find file {file_}")
     
         df = clean_data(opt.data_input_dir, df)
         
@@ -269,8 +268,8 @@ def get_camelyon_dataloader(opt):
         val_df = df[df.slide_id.isin(valid_req_ids)]
 
         print("Saving training/test set to file")
-        train_df.to_csv(f'{opt.save_dir}/training_patches.csv', index=False)
-        val_df.to_csv(f'{opt.save_dir}/test_patches.csv', index=False)
+        train_df.to_csv(f'{opt.log_path}/training_patches.csv', index=False)
+        val_df.to_csv(f'{opt.log_path}/test_patches.csv', index=False)
     
     print("training patches: ", train_df.groupby('label').size())
     print("test patches: ", val_df.groupby('label').size())
@@ -312,22 +311,23 @@ def get_camelyon_dataloader(opt):
     test_dataset = ImagePatchesDataset(val_df, image_dir=base_folder, transform=transform_valid)
 
     # Weighted sampler to handle class imbalance
-    train_sampler = get_weighted_sampler(train_dataset, num_samples=len(train_dataset))
+    #train_sampler = get_weighted_sampler(train_dataset, num_samples=len(train_dataset))
     #train_sampler = get_lnco_weighted_sampler(train_dataset, num_samples=len(train_dataset))
 
     # default dataset loaders
     train_loader = torch.utils.data.DataLoader(
-        train_dataset, batch_size=opt.batch_size_multiGPU, sampler=train_sampler, num_workers=16
+        #train_dataset, batch_size=opt.batch_size_multiGPU, sampler=train_sampler, num_workers=16
+        train_dataset, batch_size=opt.batch_size_multiGPU, shuffle=True, num_workers=16
     )
 
     unsupervised_loader = train_loader
     unsupervised_dataset = train_dataset
 
+    test_loader = torch.utils.data.DataLoader(
+        test_dataset, batch_size=opt.batch_size_multiGPU, shuffle=False, num_workers=16
+    )
 
-    #train_dataset = ImagePatchesDataset(train_df, image_dir=base_folder, transform=transform_train)
-    #test_dataset = ImagePatchesDataset(val_df, image_dir=base_folder, transform=transform_valid)
-
-    if opt.validate():
+    if opt.validate:
         df = train_df
 
         slide_ids = df.slide_id.unique()
@@ -351,8 +351,8 @@ def get_camelyon_dataloader(opt):
         print("validation patches: ", val_df.groupby('label').size())
 
         print("Saving training/test set to file")
-        train_df.to_csv(f'{opt.save_dir}/training_patches_exl_val.csv', index=False)
-        val_df.to_csv(f'{opt.save_dir}/validation_patches.csv', index=False)
+        train_df.to_csv(f'{opt.log_path}/training_patches_exl_val.csv', index=False)
+        val_df.to_csv(f'{opt.log_path}/validation_patches.csv', index=False)
 
         train_dataset = ImagePatchesDataset(train_df, image_dir=base_folder, transform=transform_train)
         test_dataset = ImagePatchesDataset(val_df, image_dir=base_folder, transform=transform_valid)
@@ -361,7 +361,7 @@ def get_camelyon_dataloader(opt):
               train_dataset,
               batch_size=opt.batch_size_multiGPU,
               shuffle=True,
-              num_workers=10
+              num_workers=16
         )
 
         # overwrite test_dataset and _loader with validation set
@@ -369,7 +369,7 @@ def get_camelyon_dataloader(opt):
             test_dataset,
             batch_size=opt.batch_size_multiGPU,
             shuffle=False,
-            num_workers=10,
+            num_workers=16,
         )
 
     else:

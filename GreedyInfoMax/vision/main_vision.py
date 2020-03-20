@@ -10,8 +10,8 @@ from GreedyInfoMax.vision.data import get_dataloader
 
 
 def validate(opt, model, test_loader):
-    total_step = len(test_loader)
-    #total_step = int(test_loader._size/opt.batch_size_multiGPU)
+    #total_step = len(test_loader)
+    total_step = int(test_loader._size/opt.batch_size_multiGPU)
 
     loss_epoch = [0 for i in range(opt.model_splits)]
     starttime = time.time()
@@ -49,8 +49,8 @@ def validate(opt, model, test_loader):
 
 
 def train(opt, model):
-    total_step = int(train_loader._size/opt.batch_size_multiGPU)
-    #total_step = len(train_loader)
+    #total_step = int(train_loader._size/opt.batch_size_multiGPU)
+    total_step = len(train_loader)
     model.module.switch_calc_loss(True)
 
     print_idx = 100
@@ -71,9 +71,6 @@ def train(opt, model):
         #if epoch >= 5:
         #    domain_loss_reg = 0.04
 
-
-        for step, batch_data in enumerate(train_loader):
-        #for step, (img, label) in enumerate(train_loader):
 
         for step, batch_data in enumerate(train_loader):
             if step % print_idx == 0:
@@ -104,26 +101,30 @@ def train(opt, model):
 
             loss, _, _, accuracy, domain_loss = model(model_input, label, n=cur_train_module, domain_reg=domain_loss_reg)
             loss = torch.mean(loss, 0) # take mean over outputs of different GPUs
-            domain_loss = torch.mean(domain_loss, 0) # take mean over outputs of different GPUs
+            if opt.domain_loss:
+                domain_loss = torch.mean(domain_loss, 0) # take mean over outputs of different GPUs
             accuracy = torch.mean(accuracy, 0)
 
             if cur_train_module != opt.model_splits and opt.model_splits > 1:
                 loss = loss[cur_train_module].unsqueeze(0) 
-                domain_loss = domain_loss[cur_train_module].unsqueeze(0)
+                if opt.domain_loss:
+                    domain_loss = domain_loss[cur_train_module].unsqueeze(0)
 
 
 
             # loop through the losses of the modules and do gradient descent
-            for idx, (cur_losses, domain_losses) in enumerate(zip(loss, domain_loss)):
+            for idx, cur_losses in enumerate(loss):
                 if len(loss) == 1 and opt.model_splits != 1:
                     idx = cur_train_module
                 model.zero_grad()
 
                 if idx == len(loss) - 1:
-                    domain_losses.backward()
+                    if opt.domain_loss:
+                        domain_loss[idx].backward()
                     cur_losses.backward()
                 else:
-                    domain_losses.backward(retain_graph=True)
+                    if opt.domain_loss:
+                        domain_loss[idx].backward(retain_graph=True)
                     cur_losses.backward(retain_graph=True)
 
                 optimizer[idx].step()
