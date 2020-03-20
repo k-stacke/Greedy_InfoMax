@@ -83,7 +83,7 @@ class ResNet_Encoder(nn.Module):
         self.encoder_num = encoder_num
         self.opt = opt
 
-        self.patchify = True
+        self.patchify = True # Patchify: False
         self.overlap = 2
 
         self.calc_loss = calc_loss
