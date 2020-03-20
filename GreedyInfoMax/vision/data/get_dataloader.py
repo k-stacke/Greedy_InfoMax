@@ -269,8 +269,8 @@ def get_camelyon_dataloader(opt):
         val_df = df[df.slide_id.isin(valid_req_ids)]
 
         print("Saving training/test set to file")
-        train_df.to_csv(f'{opt.save_dir}/training_patches.csv', index=False)
-        val_df.to_csv(f'{opt.save_dir}/test_patches.csv', index=False)
+        train_df.to_csv(f'{opt.log_path}/training_patches.csv', index=False)
+        val_df.to_csv(f'{opt.log_path}/test_patches.csv', index=False)
     
     print("training patches: ", train_df.groupby('label').size())
     print("test patches: ", val_df.groupby('label').size())
@@ -357,8 +357,8 @@ def get_camelyon_dataloader(opt):
         print("validation patches: ", val_df.groupby('label').size())
 
         print("Saving training/test set to file")
-        train_df.to_csv(f'{opt.save_dir}/training_patches_exl_val.csv', index=False)
-        val_df.to_csv(f'{opt.save_dir}/validation_patches.csv', index=False)
+        train_df.to_csv(f'{opt.log_path}/training_patches_exl_val.csv', index=False)
+        val_df.to_csv(f'{opt.log_path}/validation_patches.csv', index=False)
 
         train_dataset = ImagePatchesDataset(train_df, image_dir=base_folder, transform=transform_train)
         test_dataset = ImagePatchesDataset(val_df, image_dir=base_folder, transform=transform_valid)
