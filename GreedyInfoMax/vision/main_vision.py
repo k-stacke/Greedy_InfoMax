@@ -8,6 +8,9 @@ from GreedyInfoMax.vision.arg_parser import arg_parser
 from GreedyInfoMax.vision.models import load_vision_model
 from GreedyInfoMax.vision.data import get_dataloader
 
+import neptune
+
+torch.backends.cudnn.benchmark=True
 
 def validate(opt, model, test_loader):
     total_step = len(test_loader)
@@ -29,7 +32,7 @@ def validate(opt, model, test_loader):
         label = label.to(opt.device)
         #label = label.squeeze().long()
 
-        loss, _, _, _, _ = model(model_input, label, n=opt.train_module)
+        loss, _, _, _ = model(model_input, label, n=opt.train_module)
         loss = torch.mean(loss, 0)
 
         loss_epoch += loss.data.cpu().numpy()
@@ -48,7 +51,7 @@ def validate(opt, model, test_loader):
     return validation_loss
 
 
-def train(opt, model):
+def train(opt, model, exp):
     #total_step = int(train_loader._size/opt.batch_size_multiGPU)
     total_step = len(train_loader)
     model.module.switch_calc_loss(True)
@@ -88,7 +91,6 @@ def train(opt, model):
             label = label.to(opt.device)#.float()
             #label = label.squeeze().long()
 
-
             loss, _, _, accuracy = model(model_input, label, n=cur_train_module)
             loss = torch.mean(loss, 0) # take mean over outputs of different GPUs
             accuracy = torch.mean(accuracy, 0)
@@ -119,6 +121,8 @@ def train(opt, model):
 
                 loss_epoch[idx] += print_loss
                 loss_updates[idx] += 1
+
+                exp.send_metric(f'loss_{idx}', print_loss)
  
 
         # DALI reset loader 
@@ -126,6 +130,8 @@ def train(opt, model):
 
         if opt.validate:
             validation_loss = validate(opt, model, test_loader) #test_loader corresponds to validation set here
+            for idx, val_loss in enumerate(validation_loss):
+                exp.send_metric(f'val_loss_{idx}', val_loss)
             logs.append_val_loss(validation_loss)
 
         logs.append_train_loss([x / loss_updates[idx] for idx, x in enumerate(loss_epoch)])
@@ -134,9 +140,14 @@ def train(opt, model):
 
 if __name__ == "__main__":
 
+    neptune.init('k-stacke/cpc-greedyinfomax')
+
     opt = arg_parser.parse_args()
     arg_parser.create_log_path(opt)
     opt.training_dataset = "unlabeled"
+
+    exp = neptune.create_experiment(name='CPC Cam17 unbiased', params=opt.__dict__, 
+                            tags=['cpc'])
 
     # random seeds
     torch.manual_seed(opt.seed)
@@ -160,9 +171,10 @@ if __name__ == "__main__":
 
     try:
         # Train the model
-        train(opt, model)
+        train(opt, model, exp)
 
     except KeyboardInterrupt:
         print("Training got interrupted, saving log-files now.")
 
     logs.create_log(model)
+    exp.stop()

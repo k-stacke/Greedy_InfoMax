@@ -11,10 +11,11 @@ from torchvision.transforms import transforms
 from torch.utils.data import Dataset
 from torch.utils.data import WeightedRandomSampler
 
-from GreedyInfoMax.vision.data.externalinputgenerator import ExternalInputIterator
-from GreedyInfoMax.vision.data.externalsourcepipeline import ExternalSourcePipeline
+import neptune
+#from GreedyInfoMax.vision.data.externalinputgenerator import ExternalInputIterator
+#from GreedyInfoMax.vision.data.externalsourcepipeline import ExternalSourcePipeline
 
-from nvidia.dali.plugin.pytorch import DALIGenericIterator
+#from nvidia.dali.plugin.pytorch import DALIGenericIterator
 
 def get_dataloader(opt):
     if opt.dataset == "stl10":
@@ -189,10 +190,10 @@ def get_transforms(eval=False, aug=None):
 def get_weighted_sampler(dataset, num_samples):
     df = dataset.dataframe
     # Get number of sampler per label. Weight = 1/num sampels
-    class_weights = { row.label_new: 1/row[0] for _, row in df.groupby(['label_new']).size().reset_index().iterrows()}
+    class_weights = { row.label: 1/row[0] for _, row in df.groupby(['label']).size().reset_index().iterrows()}
     print(class_weights)
     # Set weights per sample in dataset
-    weights = [class_weights[row.label_new] for _, row in df.iterrows()]
+    weights = [class_weights[row.label] for _, row in df.iterrows()]
     return WeightedRandomSampler(weights=weights, num_samples=num_samples)
 
 def get_lnco_weighted_sampler(dataset, num_samples):
@@ -471,7 +472,7 @@ class ImagePatchesDataset(Dataset):
 
 
         # label = row.label_int
-        label = self.label_enum[row.label_new]
+        label = self.label_enum[row.label]
         #one_hot = np.eye(5, dtype = np.float64)[:, label]
 
         return image, label, row.patch_id, row.slide_id
