@@ -171,8 +171,8 @@ class ResNet_Encoder(nn.Module):
 
         accuracy = torch.zeros(1)
         if self.calc_loss and self.opt.loss == 0:
-            loss = self.loss(out, out)
-        elif self.calc_loss and (self.opt.loss == 1 or self.opt.infoloss_acc):
+            loss, accuracy = self.loss(out, out)
+        elif self.calc_loss and self.opt.loss == 1:
             loss, accuracy = self.loss(out, label)
         else:
             loss = None

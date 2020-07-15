@@ -103,7 +103,7 @@ class FullVisionModel(torch.nn.Module):
         n_patches_x, n_patches_y = None, None # Patchify: 7,7
 
         loss = torch.zeros(1, self.opt.model_splits, device=cur_device) #first dimension for multi-GPU training
-        if opt.infoloss_acc:
+        if self.opt.infoloss_acc:
             accuracies = torch.zeros(1, self.opt.model_splits, self.opt.prediction_step, device=cur_device) #first dimension for multi-GPU training
         else:
             accuracies = torch.zeros(1, self.opt.model_splits, device=cur_device) #first dimension for multi-GPU training
