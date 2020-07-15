@@ -13,6 +13,7 @@ import neptune
 torch.backends.cudnn.benchmark=True
 
 def validate(opt, model, test_loader):
+    model.eval()
     total_step = len(test_loader)
     #total_step = int(test_loader._size/opt.batch_size_multiGPU)
 
@@ -24,7 +25,7 @@ def validate(opt, model, test_loader):
 
         img = batch_data[0]
         label = batch_data[1]
-        
+
         # RESHAPE INPUT ARRAY
         # img = img.reshape(img.shape[0] * img.shape[1], img.shape[2], img.shape[3], img.shape[4])
 
@@ -32,7 +33,8 @@ def validate(opt, model, test_loader):
         label = label.to(opt.device)
         #label = label.squeeze().long()
 
-        loss, _, _, _ = model(model_input, label, n=opt.train_module)
+        with torch.no_grad():
+            loss, _, _, _ = model(model_input, label, n=opt.train_module)
         loss = torch.mean(loss, 0)
 
         loss_epoch += loss.data.cpu().numpy()
@@ -45,7 +47,7 @@ def validate(opt, model, test_loader):
         )
 
     validation_loss = [x/total_step for x in loss_epoch]
-    
+
     #DALI
     #test_loader.reset()
     return validation_loss
@@ -62,6 +64,7 @@ def train(opt, model, exp):
     cur_train_module = opt.train_module
 
     for epoch in range(opt.start_epoch, opt.num_epochs + opt.start_epoch):
+        model.train()
 
         loss_epoch = [0 for i in range(opt.model_splits)]
         loss_updates = [1 for i in range(opt.model_splits)]
@@ -83,10 +86,10 @@ def train(opt, model, exp):
             starttime = time.time()
 
             img = batch_data[0]
-            label = batch_data[1] 
+            label = batch_data[1]
             # RESHAPE INPUT ARRAY
             # img = img.reshape(img.shape[0] * img.shape[1], img.shape[2], img.shape[3], img.shape[4])
- 
+
             model_input = img.to(opt.device)
             label = label.to(opt.device)#.float()
             #label = label.squeeze().long()
@@ -113,19 +116,25 @@ def train(opt, model, exp):
                 optimizer[idx].step()
 
                 print_loss = cur_losses.item()
-                print_acc = accuracy[idx].item()
+                if opt.infoloss_acc:
+                    print_acc = [a.item() for a in accuracy[idx, :]]
+                else:
+                    print_acc = accuracy[idx].item()
                 if step % print_idx == 0:
                     print("\t \t Loss: \t \t {:.4f}".format(print_loss))
-                    if opt.loss == 1:
-                        print("\t \t Accuracy: \t \t {:.4f}".format(print_acc))
+                    if opt.loss == 1 or opt.infoloss_acc:
+                        print(f"\t \t Accuracy: {print_acc}")
+                        #print("\t \t Accuracy: \t \t {:.4f}".format(print_acc))
 
                 loss_epoch[idx] += print_loss
                 loss_updates[idx] += 1
 
                 exp.send_metric(f'loss_{idx}', print_loss)
- 
+                for i, acc in enumerate(print_acc):
+                    exp.send_metric(f'infoloss_acc_{idx}_{i}', acc)
 
-        # DALI reset loader 
+
+        # DALI reset loader
         # train_loader.reset()
 
         if opt.validate:
@@ -146,8 +155,8 @@ if __name__ == "__main__":
     arg_parser.create_log_path(opt)
     opt.training_dataset = "unlabeled"
 
-    exp = neptune.create_experiment(name='CPC Cam17 unbiased', params=opt.__dict__, 
-                            tags=['cpc'])
+    exp = neptune.create_experiment(name='CPC Cam17 unbiased', params=opt.__dict__,
+            tags=['cpc'])
 
     # random seeds
     torch.manual_seed(opt.seed)

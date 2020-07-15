@@ -42,6 +42,7 @@ class InfoNCE_Loss(nn.Module):
         batch_size = z.shape[0]
 
         total_loss = 0
+        total_accuracy = torch.zeros(self.k_predictions)
 
         if self.opt.device.type != "cpu":
             cur_device = z.get_device()
@@ -107,11 +108,17 @@ class InfoNCE_Loss(nn.Module):
                 device=cur_device,
             )  # b, y, x
 
+            # Now log_fk_main should be the one closest to zero...
+            # count all correct (i.e. zero) predicitons
+            predict = torch.argmin(log_fk.reshape(log_fk.shape[0], log_fk.shape[1], -1), dim=1).reshape(-1)
+            accuracy = torch.true_divide((predict == 0).sum(dim=0), predict.shape[0])
+            total_accuracy[k-1] += accuracy
+
             total_loss += self.contrast_loss(input=log_fk, target=true_f)
 
         total_loss /= self.k_predictions
 
-        return total_loss
+        return total_loss, total_accuracy
 
 
 class ExpNLLLoss(_WeightedLoss):

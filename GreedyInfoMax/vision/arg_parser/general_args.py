@@ -85,6 +85,15 @@ def parse_general_args(parser):
         default=None,
         help="File to specify test dataset from file, will only be used if training_data_csv is specified",
     )
+    parser.add_option(
+        "--output_dims", type="int", default=1024, help="For resnet50 1024, resnet 34 256"
+    )
+    parser.add_option(
+        "--infoloss_acc",
+        action="store_true",
+        default=False,
+        help="Boolean to decide whether to calculate correctly classified predictions for Infoloss",
+    )
 
 
     return parser

@@ -7,10 +7,11 @@ python -m GreedyInfoMax.vision.main_vision \
 --batch_size 32 \
 --validate \
 --model_splits 1 \
---num_epochs 100 \
+--num_epochs 50 \
 --save_dir '/proj/karst/results/'$DTime'_greedyinfomax' \
-#--training_data_csv 'logs/test/training_patches.csv' \
-#--test_data_csv 'logs/test/test_patches.csv' \
+--output_dim 512 \
+--training_data_csv '/proj/karst/results/dataframes/training_patches_exl_val.csv' \
+--test_data_csv '/proj/karst/results/dataframes/validation_patches.csv' \
 #--model_path 'logs/experiment_nodali' \
 #--start_epoch 14 \
 #--domain_loss \

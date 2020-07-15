@@ -332,7 +332,7 @@ def get_camelyon_dataloader(opt):
     )
 
     # create train/val split
-    if opt.validate:
+    if opt.validate and not opt.training_data_csv:
         print("Use train / val split")
 
         df = train_df

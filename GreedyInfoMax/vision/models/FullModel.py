@@ -42,7 +42,9 @@ class FullVisionModel(torch.nn.Module):
         else:
             input_dims = 3
 
-        output_dims = num_channels[-1] * self.block.expansion
+        #output_dims = num_channels[-1] * self.block.expansion
+        output_dims = opt.output_dims
+        num_channels[-1] = int(opt.output_dims/self.block.expansion)
 
         if opt.model_splits == 1:
             encoder.append(
@@ -101,7 +103,10 @@ class FullVisionModel(torch.nn.Module):
         n_patches_x, n_patches_y = None, None # Patchify: 7,7
 
         loss = torch.zeros(1, self.opt.model_splits, device=cur_device) #first dimension for multi-GPU training
-        accuracies = torch.zeros(1, self.opt.model_splits, device=cur_device) #first dimension for multi-GPU training
+        if opt.infoloss_acc:
+            accuracies = torch.zeros(1, self.opt.model_splits, self.opt.prediction_step, device=cur_device) #first dimension for multi-GPU training
+        else:
+            accuracies = torch.zeros(1, self.opt.model_splits, device=cur_device) #first dimension for multi-GPU training
 
         for idx, module in enumerate(self.encoder[: n+1]):
             h, z, cur_loss, cur_accuracy, n_patches_x, n_patches_y = module(
