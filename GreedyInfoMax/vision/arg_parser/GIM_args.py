@@ -31,6 +31,13 @@ def parse_GIM_args(parser):
         help="Index of the module to be trained individually (0-2), "
         "or training network as one (3)",
     )
+    group.add_option(
+        "--pred_directions",
+        type="int",
+        default=1,
+        help="Number of prediction directions. Will pick the N first out of "
+            "['top-down', 'buttom-up', 'left-right', 'right-left']. Top-down only is default.",
+    )
 
     parser.add_option_group(group)
     return parser
