@@ -33,10 +33,11 @@ def load_model_and_optimizer(opt, num_GPU=None, reload_model=False, calc_loss=Tr
 
 def load_classification_model(opt):
 
-    if opt.resnet == 34:
-        in_channels = 256
-    else:
-        in_channels = 1024
+    in_channels = opt.output_dims
+    # if opt.resnet == 34:
+    #     in_channels = 256
+    # else:
+    #     in_channels = 1024
 
     if opt.dataset == "stl10":
         num_classes = 10
