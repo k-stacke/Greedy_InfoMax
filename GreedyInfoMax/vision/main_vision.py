@@ -1,4 +1,5 @@
 import torch
+# import torchvision.transforms as transforms
 import time
 import numpy as np
 
@@ -87,8 +88,10 @@ def train(opt, model, exp):
 
             img = batch_data[0]
             label = batch_data[1]
-            # RESHAPE INPUT ARRAY
-            # img = img.reshape(img.shape[0] * img.shape[1], img.shape[2], img.shape[3], img.shape[4])
+            if opt.patch_aug:
+                # Image already in patches, rearrange to add in batches
+                img = img.reshape(img.shape[0] * img.shape[1], img.shape[2], img.shape[3], img.shape[4])
+                # exp.send_image('patches', transforms.ToPILImage()(img[0, ...]).convert("RGB"))
 
             model_input = img.to(opt.device)
             label = label.to(opt.device)#.float()

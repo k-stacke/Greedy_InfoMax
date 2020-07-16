@@ -100,7 +100,7 @@ class FullVisionModel(torch.nn.Module):
         else:
             cur_device = self.opt.device
 
-        n_patches_x, n_patches_y = None, None # Patchify: 7,7
+        n_patches_x, n_patches_y = 7, 7 #None, None # Patchify: 7,7
 
         loss = torch.zeros(1, self.opt.model_splits, device=cur_device) #first dimension for multi-GPU training
         if self.opt.infoloss_acc:
@@ -110,7 +110,7 @@ class FullVisionModel(torch.nn.Module):
 
         for idx, module in enumerate(self.encoder[: n+1]):
             h, z, cur_loss, cur_accuracy, n_patches_x, n_patches_y = module(
-                model_input, n_patches_x, n_patches_y, label
+                model_input, n_patches_x, n_patches_y, label, patchify_right_now=not self.opt.patch_aug
             )
             # Detach z to make sure no gradients are flowing in between modules
             # we can detach z here, as for the CPC model the loop is only called once and h is forward-propagated

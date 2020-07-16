@@ -100,6 +100,12 @@ def parse_general_args(parser):
         default=False,
         help="Boolean to decide if to balance val. set. If true, takes the min number of samples from each class.",
     )
+    parser.add_option(
+        "--patch_aug",
+        action="store_true",
+        default=False,
+        help="Boolean to decide if to do augmentation per mini-patch or not.",
+    )
 
 
     return parser

@@ -281,8 +281,8 @@ def get_camelyon_dataloader(opt):
     print("training patches: ", train_df.groupby('label').size())
     print("test patches: ", val_df.groupby('label').size())
 
-    train_dataset = ImagePatchesDataset(train_df, image_dir=base_folder, transform=transform_train)
-    test_dataset = ImagePatchesDataset(val_df, image_dir=base_folder, transform=transform_valid)
+    train_dataset = ImagePatchesDataset(train_df, image_dir=base_folder, transform=transform_train, opt=opt)
+    test_dataset = ImagePatchesDataset(val_df, image_dir=base_folder, transform=transform_valid, opt=opt)
 
     # Weighted sampler to handle class imbalance
     train_sampler = get_weighted_sampler(train_dataset, num_samples=len(train_dataset))
@@ -388,13 +388,15 @@ def clean_lnco_data(img_dir, dataframe):
 
 
 class ImagePatchesDataset(Dataset):
-    def __init__(self, dataframe, image_dir, transform=None):
+    def __init__(self, dataframe, image_dir, transform=None, opt=None):
         self.dataframe = dataframe
         self.image_dir = image_dir
         self.transform = transform
+        self.opt = opt
 
-        self.patchify = self.make_patches(patch_size=16, overlap=2)
+        self.patchify = self.make_patches(patch_size=16, overlap=2) # overlap is really patch_size//overlap, i.e. 16/2=8
         self.color_jitter = transforms.ColorJitter(hue=0.1)
+        self.random_flip = transforms.RandomHorizontalFlip(p=0.5)
 
         self.mean = [0.4313, 0.4156, 0.3663]
         self.std = [0.2683, 0.2610, 0.2687]
@@ -430,17 +432,19 @@ class ImagePatchesDataset(Dataset):
 
         if self.transform is not None:
             image = self.transform(image)
-            ## Split to multiple patches
-            #image = transforms.ToTensor()(image)
-            #patches = self.patchify(image)
-            #patches_tensor = torch.zeros_like(patches)
-            #for idx in range(patches.shape[0]):
-            #    patch_img = transforms.ToPILImage()(patches[idx, ...]).convert("RGB")
-            #    patch_img = self.color_jitter(patch_img)
-            #    patch_img = transforms.ToTensor()(patch_img)
-            #    patch_img = transforms.Normalize(self.mean, self.std)(patch_img)
-            #    patches_tensor[idx, ...] = patch_img
-            #
+            if self.opt.patch_aug:
+                # Split to multiple patches, apply more aug.
+                patches = self.patchify(image)
+                patches_tensor = torch.zeros_like(patches)
+                for idx in range(patches.shape[0]):
+                    patch_img = transforms.ToPILImage()(patches[idx, ...]).convert("RGB")
+                    patch_img = self.color_jitter(patch_img)
+                    patch_img = self.random_flip(patch_img)
+                    patch_img = transforms.ToTensor()(patch_img)
+                    # patch_img = transforms.Normalize(self.mean, self.std)(patch_img)
+                    patches_tensor[idx, ...] = patch_img
+                image = patches_tensor
+
         else:
             image = transforms.ToTensor()(image)
 
