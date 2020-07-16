@@ -14,7 +14,7 @@ class FullVisionModel(torch.nn.Module):
 
         if self.opt.model_splits == 1 and not self.opt.loss == 1:
             # building the CPC model including the autoregressive PixelCNN on top of the ResNet
-            self.employ_autoregressive = False 
+            self.employ_autoregressive = False
         else:
             self.employ_autoregressive = False
 

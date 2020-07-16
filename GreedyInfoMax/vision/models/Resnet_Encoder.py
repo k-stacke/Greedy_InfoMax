@@ -161,13 +161,13 @@ class ResNet_Encoder(nn.Module):
             n_patches_y = x.shape[2]
             x = x.reshape(
                 x.shape[0] * x.shape[1] * x.shape[2], x.shape[3], x.shape[4], x.shape[5]
-            )
+            ) # reshape to num_patches, channel, w, h
 
         z = self.model(x)
 
         out = F.adaptive_avg_pool2d(z, 1)
         out = out.reshape(-1, n_patches_x, n_patches_y, out.shape[1])
-        out = out.permute(0, 3, 1, 2).contiguous()
+        out = out.permute(0, 3, 1, 2).contiguous() # batch size, repr, n_patches_x, n_patches_y
 
         accuracy = torch.zeros(1)
         if self.calc_loss and self.opt.loss == 0:

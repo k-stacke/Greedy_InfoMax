@@ -228,7 +228,7 @@ def get_camelyon_dataloader(opt):
     transform_valid = transforms.Compose(
         [get_transforms(eval=True, aug=aug["cam17"])]
     )
-   
+
     if opt.training_data_csv:
         if os.path.isfile(opt.training_data_csv):
             print("reading csv file: ", opt.training_data_csv)
@@ -248,8 +248,8 @@ def get_camelyon_dataloader(opt):
             print(f"reading {file_} file")
             df = pd.read_csv(file_)
         else:
-            raise Expetion(f"Cannot find file {file_}")
-    
+            raise Exception(f"Cannot find file {file_}")
+
         df = clean_data(opt.data_input_dir, df)
 
         slide_ids = df.slide_id.unique()
@@ -262,50 +262,24 @@ def get_camelyon_dataloader(opt):
         train_req_ids.extend([slide_id for slide_id in slide_ids[:training_size]])  # take first
         valid_req_ids.extend([
             slide_id for slide_id in slide_ids[training_size:training_size+validation_size]])  # take last
-    
+
         print("train / valid / total")
         print(f"{len(train_req_ids)} / {len(valid_req_ids)} / {len(slide_ids)}")
-    
+
         train_df = df[df.slide_id.isin(train_req_ids)]
         val_df = df[df.slide_id.isin(valid_req_ids)]
 
         print("Saving training/test set to file")
         train_df.to_csv(f'{opt.log_path}/training_patches.csv', index=False)
         val_df.to_csv(f'{opt.log_path}/test_patches.csv', index=False)
-    
+
+    if opt.balanced_validation_set:
+        print('Use uniform validation set')
+        samples_to_take = val_df.groupby('label').size().min()
+        val_df = pd.concat([val_df[tval_dfest_df.label == label].sample(samples_to_take) for label in val_df.label.unique()])
+
     print("training patches: ", train_df.groupby('label').size())
     print("test patches: ", val_df.groupby('label').size())
-
-
-    ## DALI Augmentations
-    #train_dataset = ExternalInputIterator(batch_size=opt.batch_size_multiGPU,
-    #                                     data_frame=train_df,
-    #                                     image_dir=base_folder, shuffle=True)
-    #train_dataset = iter(train_dataset)
-
-    #test_dataset = ExternalInputIterator(batch_size=opt.batch_size_multiGPU,
-    #                                     data_frame=val_df,
-    #                                     image_dir=base_folder,
-    #                                     shuffle=False)
-    #test_dataset = iter(test_dataset)
-
-    #train_pipe = ExternalSourcePipeline(data_iterator=train_dataset, 
-    #                                      batch_size=opt.batch_size_multiGPU,
-    #                                      num_threads=4, device_id=0)
-
-    #test_pipe = ExternalSourcePipeline(data_iterator=test_dataset,
-    #                                     batch_size=opt.batch_size_multiGPU,
-    #                                     num_threads=4, device_id=0)
-
-    #train_pipe.build()
-    #test_pipe.build()    
-
-    #train_loader = DALIGenericIterator([train_pipe], ['images', 'labels'], len(train_dataset), fill_last_batch=False)
-    #test_loader = DALIGenericIterator([test_pipe], ['images', 'labels'], len(test_dataset), fill_last_batch=False)
-
-    #unsupervised_loader = train_loader
-    #unsupervised_dataset = train_dataset
-
 
     train_dataset = ImagePatchesDataset(train_df, image_dir=base_folder, transform=transform_train)
     test_dataset = ImagePatchesDataset(val_df, image_dir=base_folder, transform=transform_valid)
@@ -347,13 +321,13 @@ def get_camelyon_dataloader(opt):
         train_req_ids.extend([slide_id for slide_id in slide_ids[:training_size]])  # take first
         valid_req_ids.extend([
             slide_id for slide_id in slide_ids[training_size:training_size+validation_size]])  # take last
-        
+
         print("train / valid / total")
         print(f"{len(train_req_ids)} / {len(valid_req_ids)} / {len(slide_ids)}")
-        
+
         train_df = df[df.slide_id.isin(train_req_ids)]
         val_df = df[df.slide_id.isin(valid_req_ids)]
-        
+
         print("training patches: ", train_df.groupby('label').size())
         print("validation patches: ", val_df.groupby('label').size())
 
@@ -466,7 +440,7 @@ class ImagePatchesDataset(Dataset):
             #    patch_img = transforms.ToTensor()(patch_img)
             #    patch_img = transforms.Normalize(self.mean, self.std)(patch_img)
             #    patches_tensor[idx, ...] = patch_img
-            #    
+            #
         else:
             image = transforms.ToTensor()(image)
 

@@ -94,6 +94,12 @@ def parse_general_args(parser):
         default=False,
         help="Boolean to decide whether to calculate correctly classified predictions for Infoloss",
     )
+    parser.add_option(
+        "--balanced_validation_set",
+        action="store_true",
+        default=False,
+        help="Boolean to decide if to balance val. set. If true, takes the min number of samples from each class.",
+    )
 
 
     return parser

@@ -10,8 +10,9 @@ from GreedyInfoMax.vision.arg_parser import arg_parser
 from GreedyInfoMax.vision.models import load_vision_model
 from GreedyInfoMax.utils import logger, utils
 
+import neptune
 
-def train_logistic_regression(opt, context_model, predict_model, train_loader, criterion, optimizer):
+def train_logistic_regression(opt, context_model, predict_model, train_loader, criterion, optimizer, exp):
     total_step = len(train_loader)
     predict_model.train()
 
@@ -32,7 +33,7 @@ def train_logistic_regression(opt, context_model, predict_model, train_loader, c
                 _, _, z = context_model(model_input)
             else:
                 with torch.no_grad():
-                    _, _, z, _, _ = context_model(model_input, target)
+                    _, _, z, _ = context_model(model_input, target)
                 z = z.detach() #double security that no gradients go to representation learning part of model
 
             prediction = predict_model(z)
@@ -55,6 +56,8 @@ def train_logistic_regression(opt, context_model, predict_model, train_loader, c
             sample_loss = loss.item()
             loss_epoch += sample_loss
 
+            exp.send_metric(f'loss_0', sample_loss)
+
             if step % 10 == 0:
                 print(
                     '\rEpoch [{}/{}], Step [{}/{}], Time (s): {:.1f}, Acc1: {:.4f}, Acc5: {:.4f}, Loss: {:.4f}'.format(
@@ -71,8 +74,10 @@ def train_logistic_regression(opt, context_model, predict_model, train_loader, c
         if opt.validate:
             # validate the model - in this case, test_loader loads validation data
             val_acc1, _ , val_loss, _ = test_logistic_regression(
-                opt, context_model, predict_model, test_loader, criterion
+                opt, context_model, predict_model, test_loader, criterion, exp
             )
+            exp.send_metric('val_loss_0', val_loss)
+            exp.send_metric('val_acc', val_acc1)
             logs.append_val_loss([val_loss])
 
         print("\nOverall accuracy for this epoch: ", epoch_acc1 / total_step)
@@ -86,7 +91,7 @@ def train_logistic_regression(opt, context_model, predict_model, train_loader, c
         )
 
 
-def test_logistic_regression(opt, context_model, predict_model, test_loader, criterion):
+def test_logistic_regression(opt, context_model, predict_model, test_loader, criterion, exp):
     total_step = len(test_loader)
     context_model.eval()
     predict_model.eval()
@@ -103,13 +108,13 @@ def test_logistic_regression(opt, context_model, predict_model, test_loader, cri
     all_outputs0 = []
     all_outputs1 = []
     all_patches = []
-    
+
     for step, (img, target, patch_id, slide_id) in enumerate(test_loader):
 
         model_input = img.to(opt.device)
 
         with torch.no_grad():
-            _, _, z, _, _ = context_model(model_input, target)
+            _, _, z, _ = context_model(model_input, target)
 
         z = z.detach()
 
@@ -124,12 +129,12 @@ def test_logistic_regression(opt, context_model, predict_model, test_loader, cri
         all_labels.extend(target.cpu().data.numpy())
         all_patches.extend(patch_id)
         all_slides.extend(slide_id)
-        
-        
+
+
         probs = torch.nn.functional.softmax(prediction.data, dim=1).cpu().numpy()
         all_outputs0.extend(probs[:, 0])
         all_outputs1.extend(probs[:, 1])
-        
+
 
         # calculate accuracy
         #acc1, acc5 = utils.accuracy(prediction.data, target, topk=(1, 5))
@@ -143,11 +148,11 @@ def test_logistic_regression(opt, context_model, predict_model, test_loader, cri
         if step % 10 == 0:
             print(
                 "\rStep [{}/{}], Time (s): {:.1f}, Acc1: {:.4f}, Acc5: {:.4f}, Loss: {:.4f}".format(
-                    step, 
-                    total_step, 
-                    time.time() - starttime, 
-                    acc1, 
-                    0,#acc5, 
+                    step,
+                    total_step,
+                    time.time() - starttime,
+                    acc1,
+                    0,#acc5,
                     sample_loss), end=""
             )
             starttime = time.time()
@@ -156,17 +161,23 @@ def test_logistic_regression(opt, context_model, predict_model, test_loader, cri
         del target
 
     print("\nTesting Accuracy: ", epoch_acc1 / total_step)
-    df = pd.DataFrame({'label': all_labels, 
-                       'prediction': all_preds, 
+    df = pd.DataFrame({'label': all_labels,
+                       'prediction': all_preds,
                        'patch_id': all_patches,
                        'slide_id': all_slides,
                        'probabilities_0': all_outputs0,
                        'probabilities_1': all_outputs1,})
 
+    for label in df.label.unique():
+        label_acc = len(df[(df.label == label) & (df.prediction == df.label)])/len(df[df.label == label])
+        exp.send_metric(f'acc_{label}', label_acc)
+
     return epoch_acc1 / total_step, epoch_acc5 / total_step, loss_epoch / total_step, df
 
 
 if __name__ == "__main__":
+
+    neptune.init('k-stacke/cpc-greedyinfomax')
 
     opt = arg_parser.parse_args()
 
@@ -175,13 +186,16 @@ if __name__ == "__main__":
     arg_parser.create_log_path(opt, add_path_var=add_path_var)
     opt.training_dataset = "train"
 
+    exp = neptune.create_experiment(name='CPC linear classification', params=opt.__dict__,
+                                    tags=['cpc', 'linear'])
+
     # random seeds
     torch.manual_seed(opt.seed)
     torch.cuda.manual_seed(opt.seed)
     np.random.seed(opt.seed)
 
     # load pretrained model
-    context_model, _, _ = load_vision_model.load_model_and_optimizer(
+    context_model, _ = load_vision_model.load_model_and_optimizer(
         opt, reload_model=True, calc_loss=False
     )
     context_model.module.switch_calc_loss(False)
@@ -199,18 +213,18 @@ if __name__ == "__main__":
     else:
         params = classification_model.parameters()
 
-    optimizer = torch.optim.Adam(params)
+    optimizer = torch.optim.Adam(params, lr=5e-4)
     criterion = torch.nn.CrossEntropyLoss()
 
     logs = logger.Logger(opt)
 
     try:
         # Train the model
-        train_logistic_regression(opt, context_model, classification_model, train_loader, criterion, optimizer)
+        train_logistic_regression(opt, context_model, classification_model, train_loader, criterion, optimizer, exp)
 
         # Test the model
         acc1, acc5, _, df = test_logistic_regression(
-            opt, context_model, classification_model, test_loader, criterion
+            opt, context_model, classification_model, test_loader, criterion, exp
         )
 
     except KeyboardInterrupt:

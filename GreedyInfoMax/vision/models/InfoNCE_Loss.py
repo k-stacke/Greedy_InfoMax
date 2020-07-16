@@ -38,7 +38,8 @@ class InfoNCE_Loss(nn.Module):
                     )
 
     def forward(self, z, c, skip_step=1):
-
+        # z == c when training unsupervised
+        # z is [batch_size, repr, x_coord, y_coord]
         batch_size = z.shape[0]
 
         total_loss = 0
@@ -60,6 +61,7 @@ class InfoNCE_Loss(nn.Module):
                 .contiguous()
             )  # y, x, b, c
 
+            # Shuffle all possible samples that will be used for contrastive loss
             ztwk_shuf = ztwk.view(
                 ztwk.shape[0] * ztwk.shape[1] * ztwk.shape[2], ztwk.shape[3]
             )  # y * x * batch, c
@@ -90,18 +92,22 @@ class InfoNCE_Loss(nn.Module):
             context = (
                 c[:, :, : -(k + skip_step), :].permute(2, 3, 0, 1).unsqueeze(-2)
             )  # y, x, b, 1, c
-
+            # Compute for positive
             log_fk_main = torch.matmul(context, ztwk.unsqueeze(-1)).squeeze(
                 -2
             )  # y, x, b, 1
 
+            # Compute for negative
             log_fk_shuf = torch.matmul(context, ztwk_shuf).squeeze(-2)  # y, x, b, n
 
             log_fk = torch.cat((log_fk_main, log_fk_shuf), 3)  # y, x, b, 1+n
             log_fk = log_fk.permute(2, 3, 0, 1)  # b, 1+n, y, x
 
+            # Softmax for all
             log_fk = torch.softmax(log_fk, dim=1)
 
+            # Each example will be considered a class
+            # Class 0 is the correct class for all outputs
             true_f = torch.zeros(
                 (batch_size, log_fk.shape[-2], log_fk.shape[-1]),
                 dtype=torch.long,
@@ -110,8 +116,13 @@ class InfoNCE_Loss(nn.Module):
 
             # Now log_fk_main should be the one closest to zero...
             # count all correct (i.e. zero) predicitons
-            predict = torch.argmin(log_fk.reshape(log_fk.shape[0], log_fk.shape[1], -1), dim=1).reshape(-1)
+            predict = torch.argmin(log_fk, dim=1).reshape(-1)
+            # print('predicted', predict)
+            # print('zero count', (predict == 0).sum(dim=0))
+
             accuracy = torch.true_divide((predict == 0).sum(dim=0), predict.shape[0])
+
+            # print(f'accuracy {(predict == 0).sum(dim=0)}/{predict.shape[0]} = {accuracy}')
             total_accuracy[k-1] += accuracy
 
             total_loss += self.contrast_loss(input=log_fk, target=true_f)
