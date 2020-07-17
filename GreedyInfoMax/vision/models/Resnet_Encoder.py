@@ -162,6 +162,8 @@ class ResNet_Encoder(nn.Module):
             x = x.reshape(
                 x.shape[0] * x.shape[1] * x.shape[2], x.shape[3], x.shape[4], x.shape[5]
             ) # reshape to num_patches, channel, w, h
+        if self.patchify and self.encoder_num == 0 and not patchify_right_now:
+            x = x.reshape(x.shape[0] * x.shape[1], x.shape[2], x.shape[3], x.shape[4])
 
         z = self.model(x)
 

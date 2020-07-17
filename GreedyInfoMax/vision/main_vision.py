@@ -27,12 +27,8 @@ def validate(opt, model, test_loader):
         img = batch_data[0]
         label = batch_data[1]
 
-        # RESHAPE INPUT ARRAY
-        # img = img.reshape(img.shape[0] * img.shape[1], img.shape[2], img.shape[3], img.shape[4])
-
         model_input = img.to(opt.device)
         label = label.to(opt.device)
-        #label = label.squeeze().long()
 
         with torch.no_grad():
             loss, _, _, _ = model(model_input, label, n=opt.train_module)
@@ -49,13 +45,10 @@ def validate(opt, model, test_loader):
 
     validation_loss = [x/total_step for x in loss_epoch]
 
-    #DALI
-    #test_loader.reset()
     return validation_loss
 
 
 def train(opt, model, exp):
-    #total_step = int(train_loader._size/opt.batch_size_multiGPU)
     total_step = len(train_loader)
     model.module.switch_calc_loss(True)
 
@@ -88,14 +81,9 @@ def train(opt, model, exp):
 
             img = batch_data[0]
             label = batch_data[1]
-            if opt.patch_aug:
-                # Image already in patches, rearrange to add in batches
-                img = img.reshape(img.shape[0] * img.shape[1], img.shape[2], img.shape[3], img.shape[4])
-                # exp.send_image('patches', transforms.ToPILImage()(img[0, ...]).convert("RGB"))
 
             model_input = img.to(opt.device)
             label = label.to(opt.device)#.float()
-            #label = label.squeeze().long()
 
             loss, _, _, accuracy = model(model_input, label, n=cur_train_module)
             loss = torch.mean(loss, 0) # take mean over outputs of different GPUs
@@ -136,9 +124,6 @@ def train(opt, model, exp):
                 for i, acc in enumerate(print_acc):
                     exp.send_metric(f'infoloss_acc_{idx}_{i}', acc)
 
-
-        # DALI reset loader
-        # train_loader.reset()
 
         if opt.validate:
             validation_loss = validate(opt, model, test_loader) #test_loader corresponds to validation set here

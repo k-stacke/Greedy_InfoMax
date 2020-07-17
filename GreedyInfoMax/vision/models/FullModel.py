@@ -54,6 +54,7 @@ class FullVisionModel(torch.nn.Module):
                     block_dims,
                     num_channels,
                     0,
+                    patch_size=32 if opt.big_patches else 16,
                     calc_loss=False,
                     input_dims=input_dims,
                 )
@@ -71,6 +72,7 @@ class FullVisionModel(torch.nn.Module):
                         [block_dims[idx]],
                         [num_channels[idx]],
                         idx,
+                        patch_size=32 if opt.big_patches else 16,
                         calc_loss=False,
                         input_dims=input_dims,
                     )
@@ -127,7 +129,9 @@ class FullVisionModel(torch.nn.Module):
 
             if self.opt.model_splits == 1 and cur_loss is not None:
                 loss[:, -1] = cur_loss
-                accuracies[:, -1] = cur_accuracy
+                #print('Cur accuracy:', cur_accuracy)
+                accuracies[:, -1, :] = cur_accuracy
+                #print('accuracies', accuracies)
 
         return loss, c, h, accuracies
 

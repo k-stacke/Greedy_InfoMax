@@ -58,7 +58,7 @@ def train_logistic_regression(opt, context_model, predict_model, train_loader, c
 
             exp.send_metric(f'loss_0', sample_loss)
 
-            if step % 10 == 0:
+            if step % 100 == 0:
                 print(
                     '\rEpoch [{}/{}], Step [{}/{}], Time (s): {:.1f}, Acc1: {:.4f}, Acc5: {:.4f}, Loss: {:.4f}'.format(
                         epoch + 1,
@@ -145,7 +145,7 @@ def test_logistic_regression(opt, context_model, predict_model, test_loader, cri
         sample_loss = loss.item()
         loss_epoch += sample_loss
 
-        if step % 10 == 0:
+        if step % 100 == 0:
             print(
                 "\rStep [{}/{}], Time (s): {:.1f}, Acc1: {:.4f}, Acc5: {:.4f}, Loss: {:.4f}".format(
                     step,

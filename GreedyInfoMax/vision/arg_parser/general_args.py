@@ -106,6 +106,12 @@ def parse_general_args(parser):
         default=False,
         help="Boolean to decide if to do augmentation per mini-patch or not.",
     )
+    parser.add_option(
+        "--big_patches",
+        action="store_true",
+        default=False,
+        help="Boolean to decide if to use 64x64 patches per 256 im. Default is 16x16 from 64 im.",
+    )
 
 
     return parser

@@ -210,9 +210,10 @@ def get_camelyon_dataloader(opt):
     base_folder = opt.data_input_dir
     print('opt.data_input_dir: ', opt.data_input_dir)
 
+    randcrop = 128 if opt.big_patches else 64
     aug = {
         "cam17": {
-            "randcrop": 64,
+            "randcrop": randcrop,
             "flip": True,
             "hue": True,
             "grayscale": opt.grayscale,
@@ -241,6 +242,9 @@ def get_camelyon_dataloader(opt):
             val_df = pd.read_csv(opt.test_data_csv)
         else:
             raise Exception(f'Cannot find file: {opt.test_data_csv}')
+
+        train_df = clean_data(opt.data_input_dir, train_df)
+        val_df = clean_data(opt.data_input_dir, val_df)
     else:
         file_ = f"{opt.data_input_dir}/camelyon17_patches_unbiased.csv"
         #file_ = f"{opt.data_input_dir}/lnco_camelyon_patches.csv"
@@ -290,7 +294,7 @@ def get_camelyon_dataloader(opt):
 
     # default dataset loaders
     train_loader = torch.utils.data.DataLoader(
-        train_dataset, batch_size=opt.batch_size_multiGPU, sampler=train_sampler, num_workers=16
+        train_dataset, batch_size=opt.batch_size_multiGPU, sampler=train_sampler, num_workers=16, drop_last=True,
     )
 
     unsupervised_dataset = train_dataset
@@ -299,10 +303,11 @@ def get_camelyon_dataloader(opt):
         batch_size=opt.batch_size_multiGPU,
         shuffle=True,
         num_workers=16,
+        drop_last=True
     )
 
     test_loader = torch.utils.data.DataLoader(
-        test_dataset, batch_size=opt.batch_size_multiGPU, shuffle=False, num_workers=16
+        test_dataset, batch_size=opt.batch_size_multiGPU, shuffle=False, num_workers=16, drop_last=True
     )
 
     # create train/val split
@@ -394,7 +399,9 @@ class ImagePatchesDataset(Dataset):
         self.transform = transform
         self.opt = opt
 
-        self.patchify = self.make_patches(patch_size=16, overlap=2) # overlap is really patch_size//overlap, i.e. 16/2=8
+        patch_size = 32 if opt.big_patches else 16
+
+        self.patchify = self.make_patches(patch_size=patch_size, overlap=2) # overlap is really patch_size//overlap, i.e. 16/2=8
         self.color_jitter = transforms.ColorJitter(hue=0.1)
         self.random_flip = transforms.RandomHorizontalFlip(p=0.5)
 
@@ -417,6 +424,7 @@ class ImagePatchesDataset(Dataset):
             x = x.reshape(
                 x.shape[0] * x.shape[1], x.shape[2], x.shape[3], x.shape[4]
             ) # reshape to num_patches, channel, w, h
+            #print(f'\rpatch size: {x.shape}', end="")
             return x
         return patchify
 

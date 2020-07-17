@@ -142,12 +142,12 @@ class InfoNCE_Loss(nn.Module):
                 # Now log_fk_main should be the one closest to zero...
                 # count all correct (i.e. zero) predicitons
                 predict = torch.argmin(log_fk, dim=1).reshape(-1)
-                # print('predicted', predict)
-                # print('zero count', (predict == 0).sum(dim=0))
+                #print('predicted', predict)
+                #print('zero count', (predict == 0).sum(dim=0))
 
                 accuracy = torch.true_divide((predict == 0).sum(dim=0), predict.shape[0])
 
-                # print(f'accuracy {(predict == 0).sum(dim=0)}/{predict.shape[0]} = {accuracy}')
+                #print(f'accuracy {(predict == 0).sum(dim=0)}/{predict.shape[0]} = {accuracy}')
                 total_accuracy[k-1] += accuracy
 
                 total_loss += self.contrast_loss(input=log_fk, target=true_f)
