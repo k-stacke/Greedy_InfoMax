@@ -7,9 +7,9 @@ MODEL=$2
 OUTPUT_DIM=${3:-1024}
 
 #FOLDER=''$DTime'_greedyinfomax'
-OUTPUT_FOLDER='/proj/karst/results/'$FOLDER'/cam17/linear_classification_'$MODEL''
+OUTPUT_FOLDER='/proj/karst/results/'$FOLDER'/linear_classification_'$MODEL''
 
-sitecounter=0
+sitecounter=3
 while [ $sitecounter -le 4 ]
 do
 

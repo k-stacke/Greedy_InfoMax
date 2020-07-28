@@ -120,7 +120,7 @@ class FullVisionModel(torch.nn.Module):
 
             if cur_loss is not None:
                 loss[:, idx] = cur_loss
-                accuracies[:, idx, :] = cur_accuracy
+                accuracies[:, idx, ...] = cur_accuracy
 
         if self.employ_autoregressive and self.calc_loss:
             c, loss[:, -1] = self.autoregressor(h)
@@ -130,7 +130,7 @@ class FullVisionModel(torch.nn.Module):
             if self.opt.model_splits == 1 and cur_loss is not None:
                 loss[:, -1] = cur_loss
                 #print('Cur accuracy:', cur_accuracy)
-                accuracies[:, -1, :] = cur_accuracy
+                accuracies[:, -1, ...] = cur_accuracy
                 #print('accuracies', accuracies)
 
         return loss, c, h, accuracies

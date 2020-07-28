@@ -7,24 +7,24 @@ MODEL=$2
 OUTPUT_DIM=${3:-1024}
 
 #FOLDER=''$DTime'_greedyinfomax'
-OUTPUT_FOLDER='/proj/karst/results/'$FOLDER'/cam17/linear_classification_'$MODEL''
+OUTPUT_FOLDER='/proj/karst/results/'$FOLDER'/finetune_aida_skin/linear_classification_'$MODEL''
 
 sitecounter=0
 while [ $sitecounter -le 4 ]
 do
 
 python -m GreedyInfoMax.vision.downstream_classification \
---data_input_dir '/proj/karst/cam17_20x' \
+--data_input_dir '/proj/karst/aida_skin/skin_imagedata' \
 --dataset 'cam17' \
---batch_size 256 \
---num_epochs 10 \
+--batch_size 64 \
+--num_epochs 25 \
 --model_splits 1 \
---model_type 0 \
+--model_type 2 \
 --validate \
 --output_dim $OUTPUT_DIM \
 --save_dir ''$OUTPUT_FOLDER'/dataset_'$sitecounter'' \
---training_data_csv '/proj/karst/results/dataframes/supervised_training_patches_'$sitecounter'.csv' \
---test_data_csv '/proj/karst/results/dataframes/supervised_test_patches_'$sitecounter'.csv' \
+--training_data_csv '/proj/karst/results/dataframes/aida_skin/supervised_training_patches_'$sitecounter'.csv' \
+--test_data_csv '/proj/karst/results/dataframes/aida_skin/supervised_test_patches_'$sitecounter'.csv' \
 --model_path '/proj/karst/results/'$FOLDER'' \
 --model_num $MODEL \
 

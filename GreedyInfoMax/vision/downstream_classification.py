@@ -4,6 +4,8 @@ import time
 import os
 import pandas as pd
 
+from torch.optim.lr_scheduler import MultiStepLR
+
 ## own modules
 from GreedyInfoMax.vision.data import get_dataloader
 from GreedyInfoMax.vision.arg_parser import arg_parser
@@ -12,7 +14,7 @@ from GreedyInfoMax.utils import logger, utils
 
 import neptune
 
-def train_logistic_regression(opt, context_model, predict_model, train_loader, criterion, optimizer, exp):
+def train_logistic_regression(opt, context_model, predict_model, train_loader, criterion, optimizer, scheduler, exp):
     total_step = len(train_loader)
     predict_model.train()
 
@@ -23,6 +25,8 @@ def train_logistic_regression(opt, context_model, predict_model, train_loader, c
         epoch_acc5 = 0
 
         loss_epoch = 0
+        print('Learning rate: ', scheduler.get_lr())
+
         for step, (img, target, patch_id, slide_id) in enumerate(train_loader):
 
             predict_model.zero_grad()
@@ -30,7 +34,7 @@ def train_logistic_regression(opt, context_model, predict_model, train_loader, c
             model_input = img.to(opt.device)
 
             if opt.model_type == 2:  ## fully supervised training
-                _, _, z = context_model(model_input)
+                _, _, z, _ = context_model(model_input, target)
             else:
                 with torch.no_grad():
                     _, _, z, _ = context_model(model_input, target)
@@ -70,6 +74,8 @@ def train_logistic_regression(opt, context_model, predict_model, train_loader, c
                         0.0,
                         sample_loss), end="")
                 starttime = time.time()
+        
+        scheduler.step()
 
         if opt.validate:
             # validate the model - in this case, test_loader loads validation data
@@ -215,12 +221,13 @@ if __name__ == "__main__":
 
     optimizer = torch.optim.Adam(params, lr=5e-4)
     criterion = torch.nn.CrossEntropyLoss()
+    scheduler = MultiStepLR(optimizer, milestones=[5, 10, 20, 30], gamma=0.1)
 
     logs = logger.Logger(opt)
 
     try:
         # Train the model
-        train_logistic_regression(opt, context_model, classification_model, train_loader, criterion, optimizer, exp)
+        train_logistic_regression(opt, context_model, classification_model, train_loader, criterion, optimizer, scheduler, exp)
 
         # Test the model
         acc1, acc5, _, df = test_logistic_regression(

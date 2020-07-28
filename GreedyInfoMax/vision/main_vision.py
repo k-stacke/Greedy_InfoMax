@@ -121,8 +121,9 @@ def train(opt, model, exp):
                 loss_updates[idx] += 1
 
                 exp.send_metric(f'loss_{idx}', print_loss)
-                for i, acc in enumerate(print_acc):
-                    exp.send_metric(f'infoloss_acc_{idx}_{i}', acc)
+                if opt.infoloss_acc:
+                    for i, acc in enumerate(print_acc):
+                        exp.send_metric(f'infoloss_acc_{idx}_{i}', acc)
 
 
         if opt.validate:

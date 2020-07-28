@@ -46,6 +46,8 @@ def get_stl10_dataloader(opt):
         "stl10": {
             "randcrop": 64,
             "flip": True,
+            "resize": None,
+            "hue": None,
             "grayscale": opt.grayscale,
             "mean": [0.4313, 0.4156, 0.3663],  # values for train+unsupervised combined
             "std": [0.2683, 0.2610, 0.2687],
@@ -168,6 +170,9 @@ def get_transforms(eval=False, aug=None):
     if aug["randcrop"] and eval:
         trans.append(transforms.CenterCrop(aug["randcrop"]))
 
+    if aug["resize"]:
+        trans.append(transforms.Resize(aug["resize"]))
+
     if aug["flip"] and not eval:
         trans.append(transforms.RandomHorizontalFlip())
 
@@ -210,10 +215,12 @@ def get_camelyon_dataloader(opt):
     base_folder = opt.data_input_dir
     print('opt.data_input_dir: ', opt.data_input_dir)
 
-    randcrop = 128 if opt.big_patches else 64
+    randcrop = 128 if (opt.big_patches or opt.ten_x) else 64
+    resize = 64 if opt.ten_x else None
     aug = {
         "cam17": {
             "randcrop": randcrop,
+            "resize": resize,
             "flip": True,
             "hue": True,
             "grayscale": opt.grayscale,
@@ -371,6 +378,14 @@ def get_camelyon_dataloader(opt):
     )
 
 def clean_data(img_dir, dataframe):
+    if img_dir == '/proj/karst': # ugly workaround
+        return dataframe
+    try: 
+        os.listdir(f"{img_dir}/camelyon17_imagedata")
+    except:
+        print(f'Cannot find folder "{img_dir}/camelyon17_imagedata", cant clearn df')
+        return dataframe
+
     """ Clean the data """
     available_images = {f'camelyon17_imagedata/{file_}' for file_ in os.listdir(f"{img_dir}/camelyon17_imagedata")}
     for idx, row in dataframe.iterrows():
@@ -408,7 +423,7 @@ class ImagePatchesDataset(Dataset):
         self.mean = [0.4313, 0.4156, 0.3663]
         self.std = [0.2683, 0.2610, 0.2687]
 
-        self.label_enum = {'TUMOR': 1, 'NONTUMOR': 0}
+        self.label_enum = {'TUMOR': 1, 'NONTUMOR': 0, 'tumor': 1, 'nontumor': 0, 'roi_lgl_norm': 0}
 
     def __len__(self):
         return len(self.dataframe.index)
@@ -459,7 +474,13 @@ class ImagePatchesDataset(Dataset):
 
         # label = row.label_int
         label = self.label_enum[row.label]
+        try:
+            id_ = row.patch_id
+            if row.patch_id == None:
+                id_ = row.filename
+        except:
+            id_ = row.filename
         #one_hot = np.eye(5, dtype = np.float64)[:, label]
 
-        return image, label, row.patch_id, row.slide_id
+        return image, label, id_, row.slide_id
 

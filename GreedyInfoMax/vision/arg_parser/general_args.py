@@ -112,6 +112,12 @@ def parse_general_args(parser):
         default=False,
         help="Boolean to decide if to use 64x64 patches per 256 im. Default is 16x16 from 64 im.",
     )
+    parser.add_option(
+        "--ten_x",
+         action="store_true",
+        default=False,
+        help="If true will resize random crop 128x128 to 64x64, i.e., 10x instead of 20x"
+    )
 
 
     return parser

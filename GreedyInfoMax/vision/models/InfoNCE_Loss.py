@@ -155,6 +155,8 @@ class InfoNCE_Loss(nn.Module):
         total_loss /= (self.k_predictions + len(self.prediction_directions))
         total_accuracy /= len(self.prediction_directions)
 
+        if not self.opt.infoloss_acc:
+            total_accuracy = torch.zeros(1)
         return total_loss, total_accuracy
 
 
