@@ -10,6 +10,7 @@ from GreedyInfoMax.vision.models import load_vision_model
 from GreedyInfoMax.vision.data import get_dataloader
 
 import neptune
+#from neptune import HostedNeptuneBackend
 
 torch.backends.cudnn.benchmark=True
 
@@ -137,15 +138,16 @@ def train(opt, model, exp):
 
 
 if __name__ == "__main__":
+    proxies = {'http': 'http://127.0.0.1:8118', 'https': 'http://127.0.0.1:8118'}
 
-    neptune.init('k-stacke/cpc-greedyinfomax')
+    neptune.init('k-stacke/cpc-greedyinfomax',)# backend=HostedNeptuneBackend(proxies=proxies))
 
     opt = arg_parser.parse_args()
     arg_parser.create_log_path(opt)
     opt.training_dataset = "unlabeled"
 
-    exp = neptune.create_experiment(name='CPC Cam17 unbiased', params=opt.__dict__,
-            tags=['cpc'])
+    exp = neptune.create_experiment(name='CPC Cam17', params=opt.__dict__,
+            tags=['cpc', 'cam17'])
 
     # random seeds
     torch.manual_seed(opt.seed)

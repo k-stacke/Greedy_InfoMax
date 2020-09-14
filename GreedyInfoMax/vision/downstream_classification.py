@@ -13,6 +13,8 @@ from GreedyInfoMax.vision.models import load_vision_model
 from GreedyInfoMax.utils import logger, utils
 
 import neptune
+#from neptune import HostedNeptuneBackend
+
 
 def train_logistic_regression(opt, context_model, predict_model, train_loader, criterion, optimizer, scheduler, exp):
     total_step = len(train_loader)
@@ -25,7 +27,8 @@ def train_logistic_regression(opt, context_model, predict_model, train_loader, c
         epoch_acc5 = 0
 
         loss_epoch = 0
-        print('Learning rate: ', scheduler.get_lr())
+        if scheduler:
+            print('Learning rate: ', scheduler.get_lr())
 
         for step, (img, target, patch_id, slide_id) in enumerate(train_loader):
 
@@ -71,11 +74,11 @@ def train_logistic_regression(opt, context_model, predict_model, train_loader, c
                         total_step,
                         time.time() - starttime,
                         acc1,
-                        0.0,
+                        0.0, #acc5,
                         sample_loss), end="")
                 starttime = time.time()
-        
-        scheduler.step()
+        if scheduler:
+            scheduler.step()
 
         if opt.validate:
             # validate the model - in this case, test_loader loads validation data
@@ -158,7 +161,7 @@ def test_logistic_regression(opt, context_model, predict_model, test_loader, cri
                     total_step,
                     time.time() - starttime,
                     acc1,
-                    0,#acc5,
+                    0.0, #acc5,
                     sample_loss), end=""
             )
             starttime = time.time()
@@ -183,7 +186,9 @@ def test_logistic_regression(opt, context_model, predict_model, test_loader, cri
 
 if __name__ == "__main__":
 
-    neptune.init('k-stacke/cpc-greedyinfomax')
+    proxies = {'http': 'http://127.0.0.1:8118', 'https': 'http://127.0.0.1:8118'}
+
+    neptune.init('k-stacke/cpc-greedyinfomax',)# backend=HostedNeptuneBackend(proxies=proxies))
 
     opt = arg_parser.parse_args()
 
@@ -221,7 +226,8 @@ if __name__ == "__main__":
 
     optimizer = torch.optim.Adam(params, lr=5e-4)
     criterion = torch.nn.CrossEntropyLoss()
-    scheduler = MultiStepLR(optimizer, milestones=[5, 10, 20, 30], gamma=0.1)
+    #scheduler = MultiStepLR(optimizer, milestones=[5, 10, 20, 30], gamma=0.1)
+    scheduler = None
 
     logs = logger.Logger(opt)
 

@@ -26,6 +26,10 @@ def get_dataloader(opt):
         train_loader, train_dataset, supervised_loader, supervised_dataset, test_loader, test_dataset = get_camelyon_dataloader(
             opt
         )
+    #elif opt.dataset == 'svhn':
+    #    train_loader, train_dataset, supervised_loader, supervised_dataset, test_loader, test_dataset = get_stl10_dataloader(
+    #        opt
+    #    )
     else:
         raise Exception("Invalid option")
 
@@ -76,6 +80,23 @@ def get_stl10_dataloader(opt):
     test_dataset = torchvision.datasets.STL10(
         base_folder, split="test", transform=transform_valid, download=opt.download_dataset
     )
+
+
+    #unsupervised_dataset = torchvision.datasets.SVHN(
+    #    base_folder,
+    #    split="extra",
+    #    transform=transform_train,
+    #    download=opt.download_dataset,
+    #    ) #set download to True to get the dataset
+
+    #train_dataset = torchvision.datasets.STL10(
+    #        base_folder, split="train", transform=transform_train, download=opt.download_dataset
+    #    )
+
+    #test_dataset = torchvision.datasets.STL10(
+    #    base_folder, split="test", transform=transform_valid, download=opt.download_dataset
+    #)
+                                            
 
     # default dataset loaders
     train_loader = torch.utils.data.DataLoader(
@@ -163,6 +184,9 @@ def create_validation_sampler(dataset_size):
 
 def get_transforms(eval=False, aug=None):
     trans = []
+
+    #if aug["resize"]:
+    #    trans.append(transforms.Resize(aug["resize"]))
 
     if aug["randcrop"] and not eval:
         trans.append(transforms.RandomCrop(aug["randcrop"]))

@@ -23,10 +23,11 @@ python -m GreedyInfoMax.vision.downstream_classification \
 --validate \
 --output_dim $OUTPUT_DIM \
 --save_dir ''$OUTPUT_FOLDER'/dataset_'$sitecounter'' \
---training_data_csv '/proj/karst/results/dataframes/supervised_training_patches_'$sitecounter'.csv' \
---test_data_csv '/proj/karst/results/dataframes/supervised_test_patches_'$sitecounter'.csv' \
+--training_data_csv '/home/sectra-karst/dataframes/supervised_training_patches_'$sitecounter'.csv' \
+--test_data_csv '/home/sectra-karst/dataframes/supervised_test_patches_'$sitecounter'.csv' \
 --model_path '/proj/karst/results/'$FOLDER'' \
 --model_num $MODEL \
+--ten_x
 
 let sitecounter=sitecounter+1
 done
