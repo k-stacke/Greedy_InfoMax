@@ -118,6 +118,12 @@ def parse_general_args(parser):
         default=False,
         help="If true will resize random crop 128x128 to 64x64, i.e., 10x instead of 20x"
     )
+    parser.add_option(
+        "--layer_out",
+        type="int", 
+        default=-1, 
+        help="If set (0-6), model output from earlier layer"
+    )
 
 
     return parser

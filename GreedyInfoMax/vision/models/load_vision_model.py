@@ -34,6 +34,8 @@ def load_model_and_optimizer(opt, num_GPU=None, reload_model=False, calc_loss=Tr
 def load_classification_model(opt):
 
     in_channels = opt.output_dims
+    if opt.layer_out > -1:
+       in_channels = min(2**(8+opt.layer_out), 1024)
     # if opt.resnet == 34:
     #     in_channels = 256
     # else:
