@@ -140,7 +140,7 @@ def train(opt, model, exp):
 if __name__ == "__main__":
     proxies = {'http': 'http://127.0.0.1:8118', 'https': 'http://127.0.0.1:8118'}
 
-    neptune.init('k-stacke/cpc-greedyinfomax',)# backend=HostedNeptuneBackend(proxies=proxies))
+    neptune.init('k-stacke/cpc-greedyinfomax', backend=HostedNeptuneBackend(proxies=proxies))
 
     opt = arg_parser.parse_args()
     arg_parser.create_log_path(opt)
@@ -148,6 +148,8 @@ if __name__ == "__main__":
 
     exp = neptune.create_experiment(name='CPC Cam17', params=opt.__dict__,
             tags=['cpc', 'cam17'])
+    # exp = neptune.create_experiment(name='test', params=opt.__dict__,
+    #                         tags=['cpc'])
 
     # random seeds
     torch.manual_seed(opt.seed)

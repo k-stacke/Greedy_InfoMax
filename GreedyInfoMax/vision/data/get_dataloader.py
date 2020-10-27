@@ -96,7 +96,7 @@ def get_stl10_dataloader(opt):
     #test_dataset = torchvision.datasets.STL10(
     #    base_folder, split="test", transform=transform_valid, download=opt.download_dataset
     #)
-                                            
+
 
     # default dataset loaders
     train_loader = torch.utils.data.DataLoader(
@@ -287,6 +287,7 @@ def get_camelyon_dataloader(opt):
 
         df = clean_data(opt.data_input_dir, df)
 
+        # df = df.sample(2000)
         slide_ids = df.slide_id.unique()
         random.shuffle(slide_ids)
         train_req_ids = []
@@ -311,7 +312,7 @@ def get_camelyon_dataloader(opt):
     if opt.balanced_validation_set:
         print('Use uniform validation set')
         samples_to_take = val_df.groupby('label').size().min()
-        val_df = pd.concat([val_df[tval_dfest_df.label == label].sample(samples_to_take) for label in val_df.label.unique()])
+        val_df = pd.concat([val_df[val_df.label == label].sample(samples_to_take) for label in val_df.label.unique()])
 
     print("training patches: ", train_df.groupby('label').size())
     print("test patches: ", val_df.groupby('label').size())
@@ -324,8 +325,10 @@ def get_camelyon_dataloader(opt):
     #train_sampler = get_lnco_weighted_sampler(train_dataset, num_samples=len(train_dataset))
 
     # default dataset loaders
+
+    num_workers = 0
     train_loader = torch.utils.data.DataLoader(
-        train_dataset, batch_size=opt.batch_size_multiGPU, sampler=train_sampler, num_workers=16, drop_last=True,
+        train_dataset, batch_size=opt.batch_size_multiGPU, sampler=train_sampler, num_workers=num_workers, drop_last=True,
     )
 
     unsupervised_dataset = train_dataset
@@ -333,12 +336,12 @@ def get_camelyon_dataloader(opt):
         unsupervised_dataset,
         batch_size=opt.batch_size_multiGPU,
         shuffle=True,
-        num_workers=16,
-        drop_last=True
+        num_workers=num_workers,
+        drop_last=True,
     )
 
     test_loader = torch.utils.data.DataLoader(
-        test_dataset, batch_size=opt.batch_size_multiGPU, shuffle=False, num_workers=16, drop_last=True
+        test_dataset, batch_size=opt.batch_size_multiGPU, shuffle=False, num_workers=num_workers, drop_last=True,
     )
 
     # create train/val split
@@ -378,7 +381,7 @@ def get_camelyon_dataloader(opt):
               train_dataset,
               batch_size=opt.batch_size_multiGPU,
               shuffle=True,
-              num_workers=10
+              num_workers=num_workers
         )
 
         # overwrite test_dataset and _loader with validation set
@@ -386,7 +389,7 @@ def get_camelyon_dataloader(opt):
             test_dataset,
             batch_size=opt.batch_size_multiGPU,
             shuffle=False,
-            num_workers=10,
+            num_workers=num_workers,
         )
 
     else:
@@ -404,10 +407,10 @@ def get_camelyon_dataloader(opt):
 def clean_data(img_dir, dataframe):
     if img_dir == '/proj/karst': # ugly workaround
         return dataframe
-    try: 
+    try:
         os.listdir(f"{img_dir}/camelyon17_imagedata")
     except:
-        print(f'Cannot find folder "{img_dir}/camelyon17_imagedata", cant clearn df')
+        print(f'Cannot find folder "{img_dir}/camelyon17_imagedata", cant clean df')
         return dataframe
 
     """ Clean the data """

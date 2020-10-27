@@ -33,3 +33,4 @@ distance_sampling
 *.csv
 *.pdf
 *.png
+Pipfile.lock

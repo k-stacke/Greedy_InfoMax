@@ -20,14 +20,14 @@ class StoreOutput():
     def __init__(self, name):
         self.outputs = []
         self.name = name
-    
+
     def __call__(self, module, module_in, module_out):
         #print(module_out.shape)
         out = F.adaptive_avg_pool2d(module_out, 1)
         out = out.reshape(-1, 7, 7, out.shape[1])
         out = out.permute(0, 3, 1, 2).contiguous() # batch size, repr, n_patches_x, n_patches_y
         self.outputs.append(out)
-        
+
     def clear(self):
         self.outputs = []
 
@@ -224,7 +224,7 @@ def test_logistic_regression(opt, context_model, predict_model, test_loader, cri
 
     if hook_handle:
         hook_handle.remove()
-    del store_output 
+    del store_output
 
     print("\nTesting Accuracy: ", epoch_acc1 / total_step)
     df = pd.DataFrame({'label': all_labels,
@@ -246,7 +246,7 @@ if __name__ == "__main__":
 
     proxies = {'http': 'http://127.0.0.1:8118', 'https': 'http://127.0.0.1:8118'}
 
-    neptune.init('k-stacke/cpc-greedyinfomax',)# backend=HostedNeptuneBackend(proxies=proxies))
+    neptune.init('k-stacke/cpc-greedyinfomax', backend=HostedNeptuneBackend(proxies=proxies))
 
     opt = arg_parser.parse_args()
 
